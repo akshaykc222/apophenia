@@ -11,7 +11,7 @@ export default async function CategoriesPage() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-zinc-500">
-        ثلاثة تصنيفات فقط (تبويبات التطبيق): الوزارات، الاستدراكات، الأحكام والمراسيم. يُعيَّن المحتوى تلقائياً من PDF — لا تُنشأ تصنيفات إنجليزية مكررة.
+        ثلاثة تصنيفات فقط (تبويبات التطبيق). عند كل رفع PDF تُدمَج التصنيفات المكررة القديمة تلقائياً وتُحذف الزائدة.
       </p>
     <ReferenceTable
       table="categories"

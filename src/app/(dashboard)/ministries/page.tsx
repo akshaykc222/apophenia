@@ -8,11 +8,13 @@ export default async function MinistriesPage() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-zinc-500">
-        تُنشأ الجهات (الوزارات، الهيئات، المجالس، …) تلقائياً عند استخراج كل قسم من الجريدة.
+        تُنشأ الجهات تلقائياً من PDF. عند رفع إصدار جديد تُحدَّث «آخر ظهور» للجهات المذكورة فقط؛
+        القديمة تُخفى ويمكن حذفها دفعة واحدة.
       </p>
     <ReferenceTable
       table="ministries"
       title="الجهات / الوزارات"
+      supportsStaleFilter
       slugFrom="name_en"
       fields={[
         { key: "name_ar", label: "الاسم (عربي)" },

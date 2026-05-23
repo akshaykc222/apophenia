@@ -11,11 +11,12 @@ export default async function TenderCategoriesPage() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-zinc-500">
-        تُنشأ تصنيفات المناقصات (خدمات، إنشاءات، …) تلقائياً من نص كل مناقصة في PDF.
+        تُنشأ من PDF. التصنيفات غير المذكورة في آخر رفع تُعتبر قديمة — يمكن إخفاؤها أو حذفها.
       </p>
     <ReferenceTable
       table="tender_categories"
       title="تصنيفات المناقصات"
+      supportsStaleFilter
       slugFrom="name_en"
       fields={[
         { key: "name_ar", label: "الاسم (عربي)" },

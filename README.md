@@ -21,6 +21,7 @@ Admin panel for uploading **كويت اليوم** government gazette PDFs, semi-
    - `supabase/migrations/004_reference_on_delete_set_null.sql`
    - `supabase/migrations/005_dedupe_categories.sql` (cleans duplicate categories)
    - `supabase/migrations/006_app_settings.sql` (upload day & default issue frequency)
+   - `supabase/migrations/007_reference_metadata.sql` (reference `source`, `last_seen_at`, auto-prune on upload)
 3. Copy `.env.local.example` → `.env.local` and fill keys (`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` or `NEXT_PUBLIC_SUPABASE_ANON_KEY`).
 
 ### 2. First admin user

@@ -34,6 +34,16 @@ export class ReferenceResolver {
 
   constructor(private supabase: SupabaseClient) {}
 
+  private async touchLastSeen(
+    table: "ministries" | "tender_categories",
+    id: string
+  ) {
+    await this.supabase
+      .from(table)
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq("id", id);
+  }
+
   private cacheKey(name: string) {
     return normalizeArabicLabel(name).toLowerCase();
   }
@@ -60,6 +70,7 @@ export class ReferenceResolver {
           slug: meta.slug,
           sort_order: meta.sort_order,
           is_trending: meta.is_trending,
+          source: "canonical",
         },
         { onConflict: "slug" }
       )
@@ -91,6 +102,7 @@ export class ReferenceResolver {
     const key = this.cacheKey(label);
     if (this.ministryCache.has(key)) {
       const id = this.ministryCache.get(key)!;
+      await this.touchLastSeen("ministries", id);
       return { id, name_ar: label };
     }
 
@@ -100,13 +112,28 @@ export class ReferenceResolver {
       .ilike("name_ar", label)
       .maybeSingle();
 
+    const baseSlug = slugify(label);
+    const { data: bySlug } = await this.supabase
+      .from("ministries")
+      .select("id, name_ar")
+      .eq("slug", baseSlug)
+      .maybeSingle();
+
+    if (bySlug) {
+      await this.touchLastSeen("ministries", bySlug.id);
+      this.ministryCache.set(key, bySlug.id);
+      return { id: bySlug.id, name_ar: bySlug.name_ar };
+    }
+
     if (existing) {
+      await this.touchLastSeen("ministries", existing.id);
       this.ministryCache.set(key, existing.id);
       return { id: existing.id, name_ar: existing.name_ar };
     }
 
     const partial = await this.findMinistryByPartial(label);
     if (partial) {
+      await this.touchLastSeen("ministries", partial.id);
       this.ministryCache.set(key, partial.id);
       return partial;
     }
@@ -119,6 +146,8 @@ export class ReferenceResolver {
         name_en: null,
         slug,
         logo_url: null,
+        source: "pdf",
+        last_seen_at: new Date().toISOString(),
       })
       .select("id, name_ar")
       .single();
@@ -147,7 +176,11 @@ export class ReferenceResolver {
     if (!label) return null;
 
     const key = this.cacheKey(label);
-    if (this.tenderCategoryCache.has(key)) return this.tenderCategoryCache.get(key)!;
+    if (this.tenderCategoryCache.has(key)) {
+      const id = this.tenderCategoryCache.get(key)!;
+      await this.touchLastSeen("tender_categories", id);
+      return id;
+    }
 
     const { data: existing } = await this.supabase
       .from("tender_categories")
@@ -155,7 +188,21 @@ export class ReferenceResolver {
       .ilike("name_ar", label)
       .maybeSingle();
 
+    const baseSlug = slugify(label);
+    const { data: bySlug } = await this.supabase
+      .from("tender_categories")
+      .select("id")
+      .eq("slug", baseSlug)
+      .maybeSingle();
+
+    if (bySlug) {
+      await this.touchLastSeen("tender_categories", bySlug.id);
+      this.tenderCategoryCache.set(key, bySlug.id);
+      return bySlug.id;
+    }
+
     if (existing) {
+      await this.touchLastSeen("tender_categories", existing.id);
       this.tenderCategoryCache.set(key, existing.id);
       return existing.id;
     }
@@ -172,6 +219,8 @@ export class ReferenceResolver {
         name_en: null,
         slug,
         sort_order: (count ?? 0) + 1,
+        source: "pdf",
+        last_seen_at: new Date().toISOString(),
       })
       .select("id")
       .single();
@@ -183,6 +232,42 @@ export class ReferenceResolver {
 
     this.tenderCategoryCache.set(key, created.id);
     return created.id;
+  }
+
+  /** Remove ministries/tender types not seen in recent PDF bootstraps. */
+  async pruneStaleReferenceRows(
+    table: "ministries" | "tender_categories",
+    staleBeforeIso: string
+  ): Promise<number> {
+    const [{ data: neverSeen }, { data: outdated }] = await Promise.all([
+      this.supabase.from(table).select("id").is("last_seen_at", null),
+      this.supabase
+        .from(table)
+        .select("id")
+        .lt("last_seen_at", staleBeforeIso),
+    ]);
+
+    const staleIds = new Set([
+      ...(neverSeen ?? []).map((r) => r.id),
+      ...(outdated ?? []).map((r) => r.id),
+    ]);
+
+    let removed = 0;
+    for (const row of [...staleIds].map((id) => ({ id }))) {
+      const fkColumn =
+        table === "ministries" ? "ministry_id" : "tender_category_id";
+      await this.supabase
+        .from("content_items")
+        .update({ [fkColumn]: null })
+        .eq(fkColumn, row.id);
+      await this.supabase
+        .from("content_drafts")
+        .update({ [fkColumn]: null })
+        .eq(fkColumn, row.id);
+      const { error } = await this.supabase.from(table).delete().eq("id", row.id);
+      if (!error) removed++;
+    }
+    return removed;
   }
 
   /** Warm caches from existing DB rows (reduces lookups during extraction). */

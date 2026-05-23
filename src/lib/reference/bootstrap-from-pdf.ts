@@ -2,12 +2,18 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { extractReferenceCatalogWithLlm } from "@/lib/ai/extract-references";
 import { normalizeArabicLabel } from "./extract-entities";
 import { ReferenceResolver } from "./ensure-entities";
+import { pruneNonCanonicalCategories } from "./prune-categories";
 
 /** Pre-create categories, parties, and tender types from a PDF text sample. */
 export async function bootstrapReferencesFromText(
   supabase: SupabaseClient,
   sampleText: string
-): Promise<{ categories: number; ministries: number; tenderCategories: number }> {
+): Promise<{
+  categories: number;
+  ministries: number;
+  tenderCategories: number;
+  categoriesPruned: number;
+}> {
   const resolver = new ReferenceResolver(supabase);
   await resolver.warmCaches();
 
@@ -16,6 +22,8 @@ export async function bootstrapReferencesFromText(
   await resolver.ensureCategory("الوزارات");
   await resolver.ensureCategory("الاستدراكات");
   await resolver.ensureCategory("الأحكام والمراسيم");
+  const { deleted: categoriesPruned } =
+    await pruneNonCanonicalCategories(supabase);
   const categories = 3;
 
   let ministries = 0;
@@ -33,7 +41,12 @@ export async function bootstrapReferencesFromText(
     if (await resolver.ensureTenderCategory(name)) tenderCategories++;
   }
 
-  return { categories, ministries, tenderCategories };
+  return {
+    categories,
+    ministries,
+    tenderCategories,
+    categoriesPruned,
+  };
 }
 
 function extractPartiesFromTextBulk(text: string): string[] {
