@@ -67,9 +67,12 @@ Without this, extraction uses rule-based title/summary/body suggestions.
 3. **Manual content** — `/content/new` for items without PDF.
 4. **Reference data** — categories, ministries, tender categories.
 
-## Mobile app
+## Mobile app (Flutter)
 
 Published rows in `content_items` with `is_published = true` are readable via RLS (anon/authenticated). Categories and ministries are public read.
+
+**Integration guide:** [docs/flutter-integration.md](docs/flutter-integration.md)  
+**Mobile AI chat:** [docs/mobile-chat-api.md](docs/mobile-chat-api.md) (`POST /api/mobile-chat`)
 
 ## Scripts
 

@@ -38,7 +38,8 @@ export async function updateSession(request: NextRequest) {
   const isPublicApi =
     pathname.startsWith("/api/inngest") ||
     pathname.startsWith("/api/health") ||
-    pathname.startsWith("/api/setup");
+    pathname.startsWith("/api/setup") ||
+    pathname.startsWith("/api/mobile-chat");
 
   if (!user && !isAuthRoute && !isPublicApi) {
     const url = request.nextUrl.clone();
