@@ -40,8 +40,28 @@ export function extractIssuingPartyNameAr(text: string): string | null {
   return null;
 }
 
-/** Tender chip type (تصنيفات المناقصات). */
+/** Tender chip type (تصنيفات المناقصات) — from gazette PDF text. Order matters. */
 export function extractTenderCategoryNameAr(text: string): string | null {
+  const t = text;
+
+  // IT / digital services → خدمات (before generic «استشارات» / «تصميم»)
+  if (
+    /تقن|برمج|software|حاسوب|computer|\bit\b|digital|رقم|سحاب|cloud|erp|crm|network|شبكة|اتصالات|communication|cyber|hosting|استضافة|saas|platform|database|wifi|smart\s+city|تطبيق\s+جوال/i.test(
+      t
+    )
+  ) {
+    return "خدمات";
+  }
+
+  // Supply / equipment (incl. industrial modules) → توريد — not استشارات
+  if (
+    /توريد|شراء|تأمين|مواد|مستلزمات|supply|equipment|modules|siren|صفار|hardware|أجهزة|devices/i.test(
+      t
+    )
+  ) {
+    return "توريد";
+  }
+
   const rules: { name_ar: string; patterns: RegExp[] }[] = [
     {
       name_ar: "إنشاءات",
@@ -49,25 +69,22 @@ export function extractTenderCategoryNameAr(text: string): string | null {
     },
     {
       name_ar: "استشارات",
-      patterns: [/استشارات/, /دراسة/, /تصميم/, /استشاري/],
-    },
-    {
-      name_ar: "توريد",
-      patterns: [/توريد/, /شراء/, /تأمين/, /مواد/, /مستلزمات/],
+      // Require explicit consultancy — not bare «دراسة/تصميم» alone (too noisy in PDFs)
+      patterns: [/استشارات/, /استشاري/, /خدمات\s+استشارية/],
     },
     {
       name_ar: "خدمات",
-      patterns: [/خدمات/, /صيانة/, /تشغيل/, /نظافة/, /خدمة /],
+      patterns: [/خدمات/, /صيانة/, /تشغيل/, /نظافة/, /خدمة /, /mpractice|ممارسة/i],
     },
   ];
 
   for (const rule of rules) {
-    if (rule.patterns.some((p) => p.test(text))) {
+    if (rule.patterns.some((p) => p.test(t))) {
       return rule.name_ar;
     }
   }
 
-  if (/مناقصة|مزاد|عطاء/.test(text)) {
+  if (/مناقصة|مزاد|عطاء|rfq/i.test(t)) {
     return "خدمات";
   }
 

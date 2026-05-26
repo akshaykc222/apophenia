@@ -39,7 +39,7 @@ export async function suggestContentItem(
             {
               role: "system",
               content:
-                "Extract structured JSON from Arabic Kuwait Today official gazette text. Return only JSON: { content_type (MUST be exactly one of: article, tender, decree, addendum — never use gazette or other values), title_ar, summary_ar, body_ar, category_guess (Arabic tab: الوزارات|الاستدراكات|الأحكام والمراسيم), ministry_guess (Arabic issuing body e.g. وزارة ...), tender_category_guess (Arabic: خدمات|إنشاءات|استشارات|توريد or null), confidence }",
+                "Extract structured JSON from Arabic Kuwait Today official gazette text. Return only JSON: { content_type (MUST be exactly one of: article, tender, decree, addendum — never use gazette or other values), title_ar, summary_ar, body_ar, category_guess (Arabic tab: الوزارات|الاستدراكات|الأحكام والمراسيم), ministry_guess (Arabic issuing body e.g. وزارة ...), tender_category_guess (for tenders ONLY — exactly one of: خدمات|إنشاءات|استشارات|توريد; use خدمات for IT/software/communications; توريد for supply/equipment/hardware; إنشاءات for construction; استشارات only for explicit consultancy studies — not generic «system/modules»), confidence }",
             },
             {
               role: "user",
