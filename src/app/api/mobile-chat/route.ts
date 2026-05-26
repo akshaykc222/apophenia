@@ -2,12 +2,15 @@ import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import {
   buildSystemPromptWithContext,
-  fetchTenderContextBlock,
-  isTenderRelatedQuestion,
+  fetchPublishedContentContextBlock,
+  isContentRecommendationQuestion,
 } from "@/lib/ai/mobile-chat-context";
 import {
+  enforceInformationSourceReply,
   isDeveloperQuestion,
+  isInformationSourceQuestion,
   isOutOfScopeQuestion,
+  MOBILE_CHAT_INFORMATION_SOURCE_REPLY,
 } from "@/lib/ai/mobile-chat-prompt";
 import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/env";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -125,6 +128,14 @@ export async function POST(request: NextRequest) {
     return jsonResponse({ content: chatSettings.developer_reply });
   }
 
+  const userTexts = messages
+    .filter((m) => m.role === "user")
+    .map((m) => m.content);
+
+  if (userTexts.some((t) => isInformationSourceQuestion(t))) {
+    return jsonResponse({ content: MOBILE_CHAT_INFORMATION_SOURCE_REPLY });
+  }
+
   if (isOutOfScopeQuestion(lastUser.content)) {
     return jsonResponse({ content: chatSettings.out_of_scope_reply });
   }
@@ -135,13 +146,13 @@ export async function POST(request: NextRequest) {
   }
 
   let systemContent = chatSettings.system_prompt;
-  if (token && isTenderRelatedQuestion(lastUser.content)) {
+  if (token && isContentRecommendationQuestion(lastUser.content)) {
     const supabase = createSupabaseForToken(token);
-    const tenderBlock = await fetchTenderContextBlock(
+    const { block: contentBlock } = await fetchPublishedContentContextBlock(
       supabase,
       lastUser.content
     );
-    systemContent += buildSystemPromptWithContext(tenderBlock);
+    systemContent += buildSystemPromptWithContext(contentBlock);
   }
 
   try {
@@ -174,9 +185,11 @@ export async function POST(request: NextRequest) {
     const data = (await res.json()) as {
       choices?: { message?: { content?: string } }[];
     };
-    const content =
+    const rawContent =
       data.choices?.[0]?.message?.content?.trim() ||
       "عذراً، ما قدرت أجاوب الحين. جرّب مرة ثانية.";
+
+    const content = enforceInformationSourceReply(userTexts, rawContent);
 
     return jsonResponse({ content });
   } catch (e) {

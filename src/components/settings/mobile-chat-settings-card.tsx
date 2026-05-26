@@ -64,8 +64,9 @@ export function MobileChatSettingsCard({
         <CardTitle>مساعد التطبيق (كويت اليوم)</CardTitle>
         <p className="text-xs text-zinc-500">
           يتحكم في شخصية وردود المساعد في تطبيق Flutter عبر{" "}
-          <code className="text-zinc-400">/api/mobile-chat</code>. المناقصات
-          المنشورة تُحمّل تلقائياً عند أسئلة المناقصات.
+          <code className="text-zinc-400">/api/mobile-chat</code>. المحتوى
+          المنشور (كل التبويبات والوزارات) يُحمّل تلقائياً عند أسئلة التوصية
+          (أفضل / أنسب).
         </p>
       </CardHeader>
       <CardContent className="space-y-4">

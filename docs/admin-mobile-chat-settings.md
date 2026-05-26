@@ -1,4 +1,4 @@
-# Admin task: Mobile AI chat (prompt management + tender context)
+# Admin task: Mobile AI chat (prompt management + content recommendations)
 
 Copy this brief to your admin-panel developer.
 
@@ -8,7 +8,7 @@ Copy this brief to your admin-panel developer.
 
 1. **Flutter** calls `POST /api/mobile-chat` (already implemented in app).
 2. **Admin** can edit assistant personality, refusal text, and developer reply from **`/settings`** without redeploying code.
-3. **Tender questions** (e.g. “best tender for a technical company”) load **published tenders** from Supabase and inject them into the model context (RAG-lite).
+3. **Recommendation questions** (best/أنسب + tenders, decrees, addendums, ministries, tabs) load **filtered published `content_items`** from Supabase (by category, ministry, content type) and inject into the model context (RAG-lite).
 
 ---
 
@@ -18,11 +18,13 @@ Copy this brief to your admin-panel developer.
 |------|--------|
 | Chat API | `src/app/api/mobile-chat/route.ts` |
 | Default prompts | `src/lib/ai/mobile-chat-prompt.ts` |
-| Tender context | `src/lib/ai/mobile-chat-context.ts` |
+| Content context (RAG) | `src/lib/ai/mobile-chat-context.ts` |
 | DB migration | `supabase/migrations/008_mobile_chat_settings.sql` |
 | Settings loader | `src/lib/settings/mobile-chat-settings.ts` |
 | Admin UI | `src/components/settings/mobile-chat-settings-card.tsx` on `/settings` |
 | Settings API | `PATCH /api/settings` accepts `mobile_chat_*` fields |
+
+**No new admin UI code is required** for category/ministry filtering — it is server logic only. Ops: migration + deploy + env.
 
 ---
 
@@ -70,19 +72,25 @@ Authorization: Bearer <supabase_user_jwt>
 2. If `!enabled` → 503.
 3. Developer question → `developer_reply` from DB.
 4. Off-topic / information source (regex) → `out_of_scope_reply` from DB.
-5. Tender-related question → fetch published `content_items` where `content_type=tender`, rank by query keywords, append to system prompt.
-6. OpenAI `gpt-4o-mini` with `system_prompt` from DB + tender block + conversation.
+5. **Content-recommendation question** (أفضل / أنسب / مناقصة / مرسوم / وزارة / تبويب …) → infer filters from question:
+   - **Tab:** الوزارات → `ministries`, الاستدراكات → `addendums`, الأحكام والمراسيم → `decrees`
+   - **Ministry:** e.g. وزارة الصحة → `ministry_id`
+   - **Type:** مناقصة → `tender`, مرسوم → `decree`, استدراك → `addendum`, خبر → `article`
+   - Fetch up to 60 published `content_items`, rank by keywords, inject top 15 into system prompt.
+6. OpenAI `gpt-4o-mini` with `system_prompt` from DB + content block + conversation.
 
 **Do not** expose `OPENAI_API_KEY` to Flutter.
+
+Full API reference: [mobile-chat-api.md](./mobile-chat-api.md)
 
 ---
 
 ## Default personality (code fallback)
 
-- **In scope:** كويت اليوم app, published gazette (news, tenders, decrees), navigation help, tender recommendations from injected list.
+- **In scope:** كويت اليوم app, published gazette (news, tenders, decrees, addendums), navigation help, recommendations from injected list (any tab/ministry).
 - **Out of scope / information source:** funny Kuwait Arabic refusal (admin-editable).
 - **Who developed you:** `alfaresi solutions` (admin-editable).
-- **Tenders:** suggest up to 3 from injected list only; never invent tenders.
+- **Recommendations:** suggest up to 3 from injected list only; never invent items.
 
 ---
 
@@ -92,7 +100,7 @@ Authorization: Bearer <supabase_user_jwt>
 |----------|----------|
 | `OPENAI_API_KEY` | Yes |
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` or publishable key | Yes |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` or `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes (read `app_settings` in mobile-chat) |
 | `MOBILE_CORS_ORIGIN` | Optional |
 
@@ -101,7 +109,7 @@ Authorization: Bearer <supabase_user_jwt>
 ## Flutter (no change for prompt admin)
 
 - `ADMIN_API_URL=https://apophenia-five.vercel.app`
-- Tab **المساعد** → `POST {ADMIN_API_URL}/api/mobile-chat`
+- Bottom tab **المساعد** → `POST {ADMIN_API_URL}/api/mobile-chat`
 - Prompt changes apply on next message after admin saves (no app update).
 
 ---
@@ -111,10 +119,12 @@ Authorization: Bearer <supabase_user_jwt>
 1. Run migration `008` on production Supabase.
 2. Deploy Next.js to Vercel.
 3. Admin → Settings → edit refusal text → save → ask off-topic question in app → see new text.
-4. Ask: «شنو أفضل مناقصة لشركة تقنية؟» → answer lists real published tenders.
-5. Ask: «من طورك؟» → `alfaresi solutions` (or admin override).
-6. Ask: «ما مصدر المعلومات؟» → funny refusal (not a source essay).
-7. Disable assistant in admin → app gets 503 / unavailable message.
+4. Ask: «شنو أفضل مناقصة لشركة تقنية؟» → lists real published tenders.
+5. Ask: «أفضل مرسوم من وزارة الصحة» → lists decrees filtered by ministry.
+6. Ask: «شنو في تبويب الاستدراكات؟» → lists addendums category content.
+7. Ask: «من طورك؟» → `alfaresi solutions` (or admin override).
+8. Ask: «ما مصدر المعلومات؟» → funny refusal (not a source essay).
+9. Disable assistant in admin → app gets 503 / unavailable message.
 
 ---
 
@@ -123,5 +133,5 @@ Authorization: Bearer <supabase_user_jwt>
 - [ ] Migration applied on Supabase prod
 - [ ] `/settings` shows mobile chat card; save persists to `app_settings`
 - [ ] `/api/mobile-chat` uses DB prompts when set
-- [ ] Tender recommendation uses live published tenders
+- [ ] Recommendations use live published content (tenders, decrees, addendums, by ministry/tab)
 - [ ] Flutter works with production `ADMIN_API_URL` without redeploy for prompt tweaks
