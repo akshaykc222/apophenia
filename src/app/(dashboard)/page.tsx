@@ -1,7 +1,17 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Newspaper, Clock, AlertCircle } from "lucide-react";
+import {
+  FileText,
+  Newspaper,
+  Clock,
+  AlertCircle,
+  Users,
+  Activity,
+  UserPlus,
+  Smartphone,
+} from "lucide-react";
+import { fetchAppUsersData, ACTIVE_USER_DAYS } from "@/lib/users/app-users";
 import {
   UploadIssueLink,
   UploadBlockedHint,
@@ -11,11 +21,14 @@ import { APP_NAME } from "@/lib/brand";
 export default async function DashboardPage() {
   const supabase = await createClient();
 
+  const service = createServiceClient();
+
   const [
     { count: issuesProcessing },
     { count: draftsPending },
     { count: publishedWeek },
     { data: lastFailed },
+    userData,
   ] = await Promise.all([
     supabase
       .from("pdf_issues")
@@ -40,7 +53,18 @@ export default async function DashboardPage() {
       .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    fetchAppUsersData(service).catch(() => ({
+      users: [],
+      analytics: {
+        total_onboarded: 0,
+        active_users: 0,
+        new_this_week: 0,
+        with_device: 0,
+      },
+    })),
   ]);
+
+  const { analytics: userAnalytics } = userData;
 
   const stats = [
     {
@@ -101,6 +125,57 @@ export default async function DashboardPage() {
           );
         })}
       </div>
+
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold">مستخدمو التطبيق</h2>
+          <Link
+            href="/users"
+            className="text-sm text-zinc-400 hover:text-white"
+          >
+            عرض الكل ←
+          </Link>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            {
+              label: "مسجّلون",
+              value: userAnalytics.total_onboarded,
+              icon: Users,
+            },
+            {
+              label: `نشطون (${ACTIVE_USER_DAYS} يوم)`,
+              value: userAnalytics.active_users,
+              icon: Activity,
+            },
+            {
+              label: "جدد هذا الأسبوع",
+              value: userAnalytics.new_this_week,
+              icon: UserPlus,
+            },
+            {
+              label: "أجهزة مسجّلة",
+              value: userAnalytics.with_device,
+              icon: Smartphone,
+            },
+          ].map((s) => {
+            const Icon = s.icon;
+            return (
+              <Card key={s.label}>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-zinc-400">
+                    {s.label}
+                  </CardTitle>
+                  <Icon className="h-4 w-4 text-zinc-500" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold">{s.value}</p>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </section>
 
       {lastFailed && (
         <Card className="border-red-900/50">

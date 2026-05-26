@@ -12,6 +12,7 @@ import {
   Settings,
   Bell,
   CircleHelp,
+  Users,
   ScrollText,
   LogOut,
 } from "lucide-react";
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/categories", label: "التصنيفات", icon: FolderTree },
   { href: "/ministries", label: "الجهات", icon: Building2 },
   { href: "/tender-categories", label: "تصنيفات المناقصات", icon: Tags },
+  { href: "/users", label: "مستخدمون", icon: Users },
   { href: "/settings", label: "الإعدادات", icon: Settings },
   { href: "/help", label: "المساعدة", icon: CircleHelp },
   { href: "/notifications/push", label: "إرسال إشعارات", icon: Bell },

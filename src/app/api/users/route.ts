@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const service = createServiceClient();
-    const { users } = await fetchAppUsersData(service);
+    const { users, analytics } = await fetchAppUsersData(service);
 
     const filtered = q
       ? users.filter((u) => {
@@ -25,15 +25,7 @@ export async function GET(request: NextRequest) {
         })
       : users;
 
-    return NextResponse.json({
-      users: filtered.map((u) => ({
-        id: u.id,
-        email: u.email,
-        display_name: u.display_name,
-        has_device_token: u.has_device_token,
-        created_at: u.created_at,
-      })),
-    });
+    return NextResponse.json({ users: filtered, analytics });
   } catch (e) {
     const message = e instanceof Error ? e.message : "فشل تحميل المستخدمين";
     return NextResponse.json({ error: message }, { status: 500 });
