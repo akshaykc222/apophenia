@@ -1,13 +1,17 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import {
+  buildSystemPromptWithContext,
+  fetchTenderContextBlock,
+  isTenderRelatedQuestion,
+} from "@/lib/ai/mobile-chat-context";
+import {
   isDeveloperQuestion,
   isOutOfScopeQuestion,
-  MOBILE_CHAT_DEVELOPER_REPLY,
-  MOBILE_CHAT_OUT_OF_SCOPE_REPLY,
-  MOBILE_CHAT_SYSTEM_PROMPT,
 } from "@/lib/ai/mobile-chat-prompt";
 import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/env";
+import { createServiceClient } from "@/lib/supabase/server";
+import { getMobileChatSettings } from "@/lib/settings/mobile-chat-settings";
 
 const MAX_MESSAGES = 20;
 const MAX_CONTENT_LEN = 4000;
@@ -36,26 +40,31 @@ export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: corsHeaders() });
 }
 
+function createSupabaseForToken(token: string) {
+  return createClient(getSupabaseUrl(), getSupabaseAnonKey(), {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
 async function verifyBearerToken(request: NextRequest) {
   const auth = request.headers.get("authorization");
   if (!auth?.startsWith("Bearer ")) {
-    return { user: null, error: "missing_token" as const };
+    return { user: null, token: null, error: "missing_token" as const };
   }
   const token = auth.slice(7).trim();
-  if (!token) return { user: null, error: "missing_token" as const };
+  if (!token) return { user: null, token: null, error: "missing_token" as const };
 
   const url = getSupabaseUrl();
   const key = getSupabaseAnonKey();
-  if (!url || !key) return { user: null, error: "server_config" as const };
+  if (!url || !key) return { user: null, token: null, error: "server_config" as const };
 
-  const supabase = createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  const supabase = createSupabaseForToken(token);
   const { data, error } = await supabase.auth.getUser(token);
   if (error || !data.user) {
-    return { user: null, error: "invalid_token" as const };
+    return { user: null, token: null, error: "invalid_token" as const };
   }
-  return { user: data.user, error: null };
+  return { user: data.user, token, error: null };
 }
 
 function parseMessages(body: unknown): ChatMessage[] | null {
@@ -78,7 +87,7 @@ function parseMessages(body: unknown): ChatMessage[] | null {
 }
 
 export async function POST(request: NextRequest) {
-  const { user, error: authError } = await verifyBearerToken(request);
+  const { user, token, error: authError } = await verifyBearerToken(request);
   if (authError === "missing_token" || authError === "invalid_token") {
     return jsonResponse({ error: "Unauthorized" }, 401);
   }
@@ -106,17 +115,33 @@ export async function POST(request: NextRequest) {
     return jsonResponse({ error: "No user message" }, 400);
   }
 
+  const chatSettings = await getMobileChatSettings(createServiceClient());
+
+  if (!chatSettings.enabled) {
+    return jsonResponse({ error: "Chat unavailable" }, 503);
+  }
+
   if (isDeveloperQuestion(lastUser.content)) {
-    return jsonResponse({ content: MOBILE_CHAT_DEVELOPER_REPLY });
+    return jsonResponse({ content: chatSettings.developer_reply });
   }
 
   if (isOutOfScopeQuestion(lastUser.content)) {
-    return jsonResponse({ content: MOBILE_CHAT_OUT_OF_SCOPE_REPLY });
+    return jsonResponse({ content: chatSettings.out_of_scope_reply });
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return jsonResponse({ error: "Chat unavailable" }, 503);
+  }
+
+  let systemContent = chatSettings.system_prompt;
+  if (token && isTenderRelatedQuestion(lastUser.content)) {
+    const supabase = createSupabaseForToken(token);
+    const tenderBlock = await fetchTenderContextBlock(
+      supabase,
+      lastUser.content
+    );
+    systemContent += buildSystemPromptWithContext(tenderBlock);
   }
 
   try {
@@ -129,14 +154,14 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: MOBILE_CHAT_SYSTEM_PROMPT },
+          { role: "system", content: systemContent },
           ...messages.map((m) => ({
             role: m.role,
             content: m.content,
           })),
         ],
-        temperature: 0.6,
-        max_tokens: 500,
+        temperature: chatSettings.temperature,
+        max_tokens: chatSettings.max_tokens,
       }),
     });
 

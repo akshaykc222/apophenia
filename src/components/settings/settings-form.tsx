@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MobileChatSettingsCard } from "@/components/settings/mobile-chat-settings-card";
 import { WEEKDAYS_AR, type AppSettings } from "@/lib/settings/app-settings";
 import type { IssueFrequency } from "@/lib/types/database";
 
@@ -118,8 +119,29 @@ export function SettingsForm({ initial }: SettingsFormProps) {
       </Card>
 
       <Button type="submit" disabled={loading}>
-        {loading ? "جاري الحفظ..." : "حفظ الإعدادات"}
+        {loading ? "جاري الحفظ..." : "حفظ إعدادات الجريدة"}
       </Button>
+
+      <MobileChatSettingsCard
+        initial={initial.mobile_chat}
+        onSave={async (patch) => {
+          try {
+            const res = await fetch("/api/settings", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(patch),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+              return { ok: false, error: data.error ?? "فشل الحفظ" };
+            }
+            router.refresh();
+            return { ok: true };
+          } catch {
+            return { ok: false, error: "فشل الاتصال بالخادم" };
+          }
+        }}
+      />
     </form>
   );
 }

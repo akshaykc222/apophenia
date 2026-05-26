@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { getAppSettings, DEFAULT_APP_SETTINGS } from "@/lib/settings/app-settings";
+import {
+  validateMobileChatPatch,
+  type MobileChatSettingsInput,
+} from "@/lib/settings/mobile-chat-settings";
 import { logAudit } from "@/lib/audit";
 import type { IssueFrequency } from "@/lib/types/database";
 
@@ -28,6 +32,19 @@ export async function PATCH(request: NextRequest) {
   const body = await request.json();
   const pdf_upload_weekday = body.pdf_upload_weekday;
   const default_issue_frequency = body.default_issue_frequency;
+  const mobilePatch = {
+    mobile_chat_enabled: body.mobile_chat_enabled,
+    mobile_chat_system_prompt: body.mobile_chat_system_prompt,
+    mobile_chat_out_of_scope_reply: body.mobile_chat_out_of_scope_reply,
+    mobile_chat_developer_reply: body.mobile_chat_developer_reply,
+    mobile_chat_temperature: body.mobile_chat_temperature,
+    mobile_chat_max_tokens: body.mobile_chat_max_tokens,
+  } as MobileChatSettingsInput;
+
+  const chatValidation = validateMobileChatPatch(mobilePatch);
+  if (chatValidation) {
+    return NextResponse.json({ error: chatValidation }, { status: 400 });
+  }
 
   const updates: Record<string, unknown> = {
     updated_by: user.id,
@@ -54,10 +71,38 @@ export async function PATCH(request: NextRequest) {
     updates.default_issue_frequency = default_issue_frequency as IssueFrequency;
   }
 
-  if (
-    updates.pdf_upload_weekday === undefined &&
-    updates.default_issue_frequency === undefined
-  ) {
+  if (mobilePatch.mobile_chat_enabled !== undefined) {
+    updates.mobile_chat_enabled = Boolean(mobilePatch.mobile_chat_enabled);
+  }
+  if (mobilePatch.mobile_chat_system_prompt !== undefined) {
+    updates.mobile_chat_system_prompt =
+      mobilePatch.mobile_chat_system_prompt === null ||
+      String(mobilePatch.mobile_chat_system_prompt).trim() === ""
+        ? null
+        : String(mobilePatch.mobile_chat_system_prompt).trim();
+  }
+  if (mobilePatch.mobile_chat_out_of_scope_reply !== undefined) {
+    updates.mobile_chat_out_of_scope_reply =
+      mobilePatch.mobile_chat_out_of_scope_reply === null ||
+      String(mobilePatch.mobile_chat_out_of_scope_reply).trim() === ""
+        ? null
+        : String(mobilePatch.mobile_chat_out_of_scope_reply).trim();
+  }
+  if (mobilePatch.mobile_chat_developer_reply !== undefined) {
+    updates.mobile_chat_developer_reply =
+      mobilePatch.mobile_chat_developer_reply === null ||
+      String(mobilePatch.mobile_chat_developer_reply).trim() === ""
+        ? null
+        : String(mobilePatch.mobile_chat_developer_reply).trim();
+  }
+  if (mobilePatch.mobile_chat_temperature !== undefined) {
+    updates.mobile_chat_temperature = mobilePatch.mobile_chat_temperature;
+  }
+  if (mobilePatch.mobile_chat_max_tokens !== undefined) {
+    updates.mobile_chat_max_tokens = mobilePatch.mobile_chat_max_tokens;
+  }
+
+  if (Object.keys(updates).length <= 1) {
     return NextResponse.json({ error: "لا توجد حقول للتحديث" }, { status: 400 });
   }
 
@@ -66,7 +111,9 @@ export async function PATCH(request: NextRequest) {
     .from("app_settings")
     .update(updates)
     .eq("id", 1)
-    .select("pdf_upload_weekday, default_issue_frequency")
+    .select(
+      "pdf_upload_weekday, default_issue_frequency, mobile_chat_enabled, mobile_chat_system_prompt, mobile_chat_out_of_scope_reply, mobile_chat_developer_reply, mobile_chat_temperature, mobile_chat_max_tokens"
+    )
     .single();
 
   if (error) {
@@ -74,7 +121,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json(
         {
           error:
-            "جدول الإعدادات غير موجود. نفّذ migration 006_app_settings.sql في Supabase.",
+            "جدول الإعدادات غير موجود. نفّذ migrations 006 و 008 في Supabase.",
         },
         { status: 503 }
       );
@@ -90,7 +137,21 @@ export async function PATCH(request: NextRequest) {
     payload: updates,
   });
 
+  const row = data ?? null;
   return NextResponse.json({
-    settings: data ?? DEFAULT_APP_SETTINGS,
+    settings: row
+      ? {
+          pdf_upload_weekday: row.pdf_upload_weekday,
+          default_issue_frequency: row.default_issue_frequency,
+          mobile_chat: {
+            enabled: row.mobile_chat_enabled,
+            system_prompt: row.mobile_chat_system_prompt,
+            out_of_scope_reply: row.mobile_chat_out_of_scope_reply,
+            developer_reply: row.mobile_chat_developer_reply,
+            temperature: row.mobile_chat_temperature,
+            max_tokens: row.mobile_chat_max_tokens,
+          },
+        }
+      : DEFAULT_APP_SETTINGS,
   });
 }

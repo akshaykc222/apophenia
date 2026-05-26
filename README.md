@@ -22,6 +22,7 @@ Admin panel for uploading **كويت اليوم** government gazette PDFs, semi-
    - `supabase/migrations/005_dedupe_categories.sql` (cleans duplicate categories)
    - `supabase/migrations/006_app_settings.sql` (upload day & default issue frequency)
    - `supabase/migrations/007_reference_metadata.sql` (reference `source`, `last_seen_at`, auto-prune on upload)
+   - `supabase/migrations/008_mobile_chat_settings.sql` (mobile AI chat prompts in `/settings`)
 3. Copy `.env.local.example` → `.env.local` and fill keys (`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` or `NEXT_PUBLIC_SUPABASE_ANON_KEY`).
 
 ### 2. First admin user
@@ -72,7 +73,7 @@ Without this, extraction uses rule-based title/summary/body suggestions.
 Published rows in `content_items` with `is_published = true` are readable via RLS (anon/authenticated). Categories and ministries are public read.
 
 **Integration guide:** [docs/flutter-integration.md](docs/flutter-integration.md)  
-**Mobile AI chat:** [docs/mobile-chat-api.md](docs/mobile-chat-api.md) (`POST /api/mobile-chat`)
+**Mobile AI chat:** [docs/mobile-chat-api.md](docs/mobile-chat-api.md) · [admin prompts](docs/admin-mobile-chat-settings.md) — prompt/style editable in admin **Settings** ([admin brief](docs/admin-mobile-chat-settings.md)); run migration `008_mobile_chat_settings.sql`.
 
 ## Scripts
 
