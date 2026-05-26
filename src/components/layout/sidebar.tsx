@@ -10,6 +10,8 @@ import {
   Building2,
   Tags,
   Settings,
+  Bell,
+  CircleHelp,
   ScrollText,
   LogOut,
 } from "lucide-react";
@@ -26,6 +28,8 @@ const navItems = [
   { href: "/ministries", label: "الجهات", icon: Building2 },
   { href: "/tender-categories", label: "تصنيفات المناقصات", icon: Tags },
   { href: "/settings", label: "الإعدادات", icon: Settings },
+  { href: "/help", label: "المساعدة", icon: CircleHelp },
+  { href: "/notifications/push", label: "إرسال إشعارات", icon: Bell },
   { href: "/audit", label: "سجل التدقيق", icon: ScrollText },
 ];
 
@@ -46,7 +50,7 @@ export function Sidebar() {
         <h1 className="text-lg font-bold">{APP_NAME}</h1>
         <p className="text-xs text-zinc-500">لوحة الإدارة</p>
       </div>
-      <nav className="flex-1 space-y-1 p-4">
+      <nav className="flex-1 space-y-1 overflow-y-auto p-4">
         {navItems.map((item) => {
           const active =
             item.href === "/"

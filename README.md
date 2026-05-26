@@ -23,6 +23,8 @@ Admin panel for uploading **كويت اليوم** government gazette PDFs, semi-
    - `supabase/migrations/006_app_settings.sql` (upload day & default issue frequency)
    - `supabase/migrations/007_reference_metadata.sql` (reference `source`, `last_seen_at`, auto-prune on upload)
    - `supabase/migrations/008_mobile_chat_settings.sql` (mobile AI chat prompts in `/settings`)
+   - `supabase/migrations/009_push_notifications.sql` (FCM device tokens & admin push)
+   - `supabase/migrations/010_app_help.sql` (in-app help / FAQ from `/help`)
 3. Copy `.env.local.example` → `.env.local` and fill keys (`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` or `NEXT_PUBLIC_SUPABASE_ANON_KEY`).
 
 ### 2. First admin user
