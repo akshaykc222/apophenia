@@ -4,10 +4,13 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { inngest } from "@/inngest/client";
 import { logAudit } from "@/lib/audit";
-import { sanitizeStorageFilename } from "@/lib/utils";
-import { getAppSettings } from "@/lib/settings/app-settings";
-import { isPdfUploadDay, pdfUploadBlockedMessageAr } from "@/lib/issues/upload-window";
+import {
+  assertPdfUploadAllowed,
+  buildIssueStoragePath,
+  MAX_PDF_BYTES,
+} from "@/lib/issues/upload-shared";
 
+/** Legacy single-request upload (works locally). On Vercel use prepare → Supabase → complete. */
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const { user, isAdmin } = await requireAdmin(supabase);
@@ -16,12 +19,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
   }
 
-  const appSettings = await getAppSettings(supabase);
-  if (!isPdfUploadDay(appSettings.pdf_upload_weekday)) {
-    return NextResponse.json(
-      { error: pdfUploadBlockedMessageAr(appSettings.pdf_upload_weekday) },
-      { status: 403 }
-    );
+  const gate = await assertPdfUploadAllowed(supabase);
+  if (!gate.ok) {
+    return NextResponse.json({ error: gate.error }, { status: gate.status });
   }
 
   const formData = await request.formData();
@@ -38,10 +38,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "يجب أن يكون الملف PDF" }, { status: 400 });
   }
 
+  if (file.size > MAX_PDF_BYTES) {
+    return NextResponse.json({ error: "حجم الملف أكبر من 50 م.ب" }, { status: 400 });
+  }
+
+  // Vercel serverless body limit ~4.5MB — direct upload is required in production
+  if (file.size > 4 * 1024 * 1024 && process.env.VERCEL === "1") {
+    return NextResponse.json(
+      {
+        error:
+          "الملف كبير لرفع عبر الخادم على Vercel. استخدم الرفع المباشر (يُفعّل تلقائياً من الواجهة).",
+        use_direct_upload: true,
+      },
+      { status: 413 }
+    );
+  }
+
   const service = createServiceClient();
   const issueId = crypto.randomUUID();
-  const storageFilename = sanitizeStorageFilename(file.name);
-  const storagePath = `${issueId}/${storageFilename}`;
+  const { storagePath } = buildIssueStoragePath(issueId, file.name);
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const { error: uploadError } = await service.storage

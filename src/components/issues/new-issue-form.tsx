@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { IssueFrequency } from "@/lib/types/database";
+import { createClient } from "@/lib/supabase/client";
+import { MAX_PDF_BYTES } from "@/lib/issues/upload-shared";
 
 type NewIssueFormProps = {
   uploadAllowed: boolean;
@@ -42,8 +44,7 @@ export function NewIssueForm({
       return;
     }
 
-    const maxBytes = 50 * 1024 * 1024;
-    if (file.size > maxBytes) {
+    if (file.size > MAX_PDF_BYTES) {
       setError("حجم الملف أكبر من 50 م.ب");
       return;
     }
@@ -51,45 +52,15 @@ export function NewIssueForm({
     setLoading(true);
     setError(null);
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("issue_date", issueDate);
-    formData.append("frequency", frequency);
-    if (notes) formData.append("notes", notes);
-
     try {
-      const res = await fetch("/api/issues/upload", {
-        method: "POST",
-        body: formData,
+      const issue = await uploadIssueDirect({
+        file,
+        issueDate,
+        frequency,
+        notes: notes || null,
       });
 
-      const text = await res.text();
-      let data: { error?: string; issue?: { id: string } } = {};
-      if (text) {
-        try {
-          data = JSON.parse(text);
-        } catch {
-          setError(
-            "استجابة غير صالحة من الخادم. أعد تشغيل npm run dev بعد تحديث next.config."
-          );
-          setLoading(false);
-          return;
-        }
-      }
-
-      if (!res.ok) {
-        setError(data.error ?? `فشل الرفع (${res.status})`);
-        setLoading(false);
-        return;
-      }
-
-      if (!data.issue?.id) {
-        setError("لم يُرجع الخادم معرف الإصدار");
-        setLoading(false);
-        return;
-      }
-
-      router.push(`/issues/${data.issue.id}`);
+      router.push(`/issues/${issue.id}`);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "فشل الاتصال بالخادم");
@@ -152,7 +123,7 @@ export function NewIssueForm({
                     {file.name}
                     <span className="mt-1 block text-xs text-zinc-500">
                       {(file.size / (1024 * 1024)).toFixed(1)} م.ب — الحد الأقصى 50
-                      م.ب
+                      م.ب (رفع مباشر إلى التخزين)
                     </span>
                   </span>
                 ) : (
@@ -208,4 +179,89 @@ export function NewIssueForm({
       </Card>
     </div>
   );
+}
+
+function parseJsonResponse<T>(text: string, status: number): T {
+  if (!text) return {} as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    const hint =
+      status === 413
+        ? "الملف كبير جداً لخادم Vercel (الحد ~4.5 م.ب). جرّب تحديث الصفحة — الرفع المباشر يجب أن يعمل تلقائياً."
+        : `استجابة غير متوقعة من الخادم (${status}).`;
+    throw new Error(hint);
+  }
+}
+
+async function uploadIssueDirect(input: {
+  file: File;
+  issueDate: string;
+  frequency: IssueFrequency;
+  notes: string | null;
+}): Promise<{ id: string }> {
+  const prepRes = await fetch("/api/issues/upload/prepare", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      original_filename: input.file.name,
+      file_size_bytes: input.file.size,
+    }),
+  });
+  const prepText = await prepRes.text();
+  const prep = parseJsonResponse<{
+    error?: string;
+    issueId?: string;
+    storagePath?: string;
+  }>(prepText, prepRes.status);
+
+  if (!prepRes.ok) {
+    throw new Error(prep.error ?? `فشل تجهيز الرفع (${prepRes.status})`);
+  }
+
+  if (!prep.issueId || !prep.storagePath) {
+    throw new Error("استجابة تجهيز الرفع غير مكتملة");
+  }
+
+  const supabase = createClient();
+  const { error: storageError } = await supabase.storage
+    .from("gazettes")
+    .upload(prep.storagePath, input.file, {
+      contentType: "application/pdf",
+      upsert: false,
+    });
+
+  if (storageError) {
+    throw new Error(storageError.message || "فشل رفع الملف إلى التخزين");
+  }
+
+  const completeRes = await fetch("/api/issues/upload/complete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      issue_id: prep.issueId,
+      storage_path: prep.storagePath,
+      issue_date: input.issueDate,
+      frequency: input.frequency,
+      notes: input.notes,
+      original_filename: input.file.name,
+      file_size_bytes: input.file.size,
+    }),
+  });
+
+  const completeText = await completeRes.text();
+  const complete = parseJsonResponse<{
+    error?: string;
+    issue?: { id: string };
+  }>(completeText, completeRes.status);
+
+  if (!completeRes.ok) {
+    throw new Error(complete.error ?? `فشل إنهاء الرفع (${completeRes.status})`);
+  }
+
+  if (!complete.issue?.id) {
+    throw new Error("لم يُرجع الخادم معرف الإصدار");
+  }
+
+  return { id: complete.issue.id };
 }
