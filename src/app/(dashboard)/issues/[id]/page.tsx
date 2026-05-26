@@ -7,6 +7,11 @@ import { extractionStatusLabels } from "@/lib/status-labels";
 import type { ExtractionStatus } from "@/lib/types/database";
 import { IssueActions } from "@/components/issues/issue-actions";
 import { IssueProgressPoller } from "@/components/issues/issue-progress";
+import {
+  ExtractionAlert,
+  InngestSetupHint,
+} from "@/components/issues/extraction-alert";
+import { getExtractionStuckMessage } from "@/lib/issues/extraction-stuck";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 
@@ -38,7 +43,19 @@ export default async function IssueDetailPage({
     .eq("issue_id", id)
     .eq("is_published", true);
 
+  const { data: latestJob } = await supabase
+    .from("extraction_jobs")
+    .select("status, started_at")
+    .eq("issue_id", id)
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const status = issue.extraction_status as ExtractionStatus;
+  const stuckMessage =
+    issue.error_message ||
+    getExtractionStuckMessage(issue, latestJob ?? null) ||
+    null;
 
   return (
     <div className="space-y-6">
@@ -78,11 +95,16 @@ export default async function IssueDetailPage({
         </Card>
       </div>
 
+      {stuckMessage && <ExtractionAlert message={stuckMessage} />}
+
       <Card>
         <CardHeader>
           <CardTitle>التقدم</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {(status === "pending" || status === "processing") && (
+            <InngestSetupHint />
+          )}
           <IssueProgressPoller
             issueId={id}
             status={status}

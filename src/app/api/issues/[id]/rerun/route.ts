@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/supabase/admin";
-import { inngest } from "@/inngest/client";
+import { enqueueIssueExtraction } from "@/lib/inngest/enqueue-extraction";
 
 export async function POST(
   _request: NextRequest,
@@ -30,14 +30,26 @@ export async function POST(
     })
     .eq("id", id);
 
-  await inngest.send({
-    name: "gazette/issue.uploaded",
-    data: { issueId: id },
-  });
+  const enqueue = await enqueueIssueExtraction(id);
+
+  if (!enqueue.ok) {
+    await service
+      .from("pdf_issues")
+      .update({
+        extraction_status: "pending",
+        error_message: enqueue.error,
+      })
+      .eq("id", id);
+    return NextResponse.json({ error: enqueue.error }, { status: 503 });
+  }
 
   await service
     .from("pdf_issues")
-    .update({ extraction_status: "processing" })
+    .update({
+      extraction_status: "processing",
+      error_message: null,
+      extraction_progress: 0,
+    })
     .eq("id", id);
 
   return NextResponse.json({ ok: true });

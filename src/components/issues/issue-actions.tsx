@@ -20,7 +20,18 @@ export function IssueActions({
   async function rerunExtraction() {
     setLoading(true);
     setShowRerunConfirm(false);
-    await fetch(`/api/issues/${issueId}/rerun`, { method: "POST" });
+    try {
+      const res = await fetch(`/api/issues/${issueId}/rerun`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(
+          (data as { error?: string }).error ??
+            "فشل بدء الاستخراج. تحقق من Inngest على Vercel."
+        );
+      }
+    } catch {
+      alert("فشل الاتصال بالخادم");
+    }
     setLoading(false);
     router.refresh();
   }

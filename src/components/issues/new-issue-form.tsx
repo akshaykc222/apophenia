@@ -60,6 +60,14 @@ export function NewIssueForm({
         notes: notes || null,
       });
 
+      if (issue.extraction_error) {
+        setError(issue.extraction_error);
+        setLoading(false);
+        router.push(`/issues/${issue.id}`);
+        router.refresh();
+        return;
+      }
+
       router.push(`/issues/${issue.id}`);
       router.refresh();
     } catch (err) {
@@ -199,7 +207,7 @@ async function uploadIssueDirect(input: {
   issueDate: string;
   frequency: IssueFrequency;
   notes: string | null;
-}): Promise<{ id: string }> {
+}): Promise<{ id: string; extraction_error?: string | null }> {
   const prepRes = await fetch("/api/issues/upload/prepare", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -253,6 +261,7 @@ async function uploadIssueDirect(input: {
   const complete = parseJsonResponse<{
     error?: string;
     issue?: { id: string };
+    extraction_error?: string | null;
   }>(completeText, completeRes.status);
 
   if (!completeRes.ok) {
@@ -263,5 +272,8 @@ async function uploadIssueDirect(input: {
     throw new Error("لم يُرجع الخادم معرف الإصدار");
   }
 
-  return { id: complete.issue.id };
+  return {
+    id: complete.issue.id,
+    extraction_error: complete.extraction_error ?? null,
+  };
 }

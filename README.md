@@ -40,7 +40,11 @@ INSERT INTO admin_users (user_id, display_name)
 VALUES ('YOUR_AUTH_USER_UUID', 'Admin');
 ```
 
-### 3. Inngest (local dev)
+### 3. Inngest (PDF extraction — required on Vercel)
+
+**Production:** See [docs/inngest-vercel.md](docs/inngest-vercel.md) — set `INNGEST_EVENT_KEY` + `INNGEST_SIGNING_KEY` and sync `/api/inngest`.
+
+**Local dev:**
 
 ```bash
 npx inngest-cli@latest dev
@@ -49,10 +53,8 @@ npx inngest-cli@latest dev
 In another terminal:
 
 ```bash
-npm run dev
+INNGEST_DEV=1 npm run dev
 ```
-
-Set `INNGEST_DEV=1` or configure signing keys for production.
 
 ### 4. Optional LLM suggestions
 

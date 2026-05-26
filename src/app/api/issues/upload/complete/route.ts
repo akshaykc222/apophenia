@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/supabase/admin";
-import { inngest } from "@/inngest/client";
+import { enqueueIssueExtraction } from "@/lib/inngest/enqueue-extraction";
 import { logAudit } from "@/lib/audit";
 import {
   assertPdfUploadAllowed,
@@ -119,18 +119,35 @@ export async function POST(request: NextRequest) {
     payload: { filename: meta.originalFilename, issue_date: issueDate },
   });
 
-  try {
-    await inngest.send({
-      name: "gazette/issue.uploaded",
-      data: { issueId },
-    });
+  const enqueue = await enqueueIssueExtraction(issueId);
+  if (enqueue.ok) {
     await service
       .from("pdf_issues")
-      .update({ extraction_status: "processing" })
+      .update({
+        extraction_status: "processing",
+        error_message: null,
+      })
       .eq("id", issueId);
-  } catch (e) {
-    console.error("Inngest enqueue failed:", e);
+  } else {
+    console.error("Inngest enqueue failed:", enqueue.error);
+    await service
+      .from("pdf_issues")
+      .update({
+        extraction_status: "pending",
+        error_message: enqueue.error,
+      })
+      .eq("id", issueId);
   }
 
-  return NextResponse.json({ issue });
+  const { data: refreshed } = await service
+    .from("pdf_issues")
+    .select("*")
+    .eq("id", issueId)
+    .single();
+
+  return NextResponse.json({
+    issue: refreshed ?? issue,
+    extraction_started: enqueue.ok,
+    extraction_error: enqueue.ok ? null : enqueue.error,
+  });
 }
