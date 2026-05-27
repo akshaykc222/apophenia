@@ -1,18 +1,26 @@
-import { createRequire } from "node:module";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-const require = createRequire(import.meta.url);
-
 let workerConfigured = false;
+
+/** Resolved at runtime — do not use require.resolve (Turbopack turns it into a module id). */
+function pdfJsWorkerPath() {
+  return path.join(
+    process.cwd(),
+    "node_modules",
+    "pdfjs-dist",
+    "legacy",
+    "build",
+    "pdf.worker.mjs"
+  );
+}
 
 function configurePdfJsWorker(
   pdfjs: typeof import("pdfjs-dist/legacy/build/pdf.mjs")
 ) {
   if (workerConfigured) return;
 
-  const workerPath = require.resolve("pdfjs-dist/legacy/build/pdf.worker.mjs");
-  pdfjs.GlobalWorkerOptions.workerSrc = pathToFileURL(workerPath).href;
+  pdfjs.GlobalWorkerOptions.workerSrc = pathToFileURL(pdfJsWorkerPath()).href;
   workerConfigured = true;
 }
 
@@ -141,7 +149,7 @@ export function buildPdfDocumentInit(buffer: ArrayBuffer) {
   ensureDomMatrix();
 
   const standardFontDataUrl = pathToFileURL(
-    path.join(process.cwd(), "node_modules/pdfjs-dist/standard_fonts/")
+    path.join(process.cwd(), "node_modules", "pdfjs-dist", "standard_fonts")
   ).toString();
 
   return {
@@ -161,7 +169,11 @@ export function formatPdfError(error: unknown): string {
     if (msg.includes("standardFontDataUrl")) {
       return "تعذّر قراءة ملف PDF على الخادم (ملفات خطوط PDF غير متاحة).";
     }
-    if (msg.includes("pdf.worker") || msg.includes("fake worker")) {
+    if (
+      msg.includes("pdf.worker") ||
+      msg.includes("fake worker") ||
+      msg.includes("'path' argument must be of type string")
+    ) {
       return "تعذّر قراءة ملف PDF على الخادم (ملف عامل pdfjs غير متاح).";
     }
     if (msg.includes("Failed to load external module pdfjs-dist")) {
