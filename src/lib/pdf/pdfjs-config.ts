@@ -1,10 +1,27 @@
+import { createRequire } from "node:module";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+
+const require = createRequire(import.meta.url);
+
+let workerConfigured = false;
+
+function configurePdfJsWorker(
+  pdfjs: typeof import("pdfjs-dist/legacy/build/pdf.mjs")
+) {
+  if (workerConfigured) return;
+
+  const workerPath = require.resolve("pdfjs-dist/legacy/build/pdf.worker.mjs");
+  pdfjs.GlobalWorkerOptions.workerSrc = pathToFileURL(workerPath).href;
+  workerConfigured = true;
+}
 
 export async function loadPdfJs() {
   // pdfjs-dist may reference DOMMatrix at module-load time on Vercel.
   ensureDomMatrix();
-  return import("pdfjs-dist/legacy/build/pdf.mjs");
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  configurePdfJsWorker(pdfjs);
+  return pdfjs;
 }
 
 function ensureDomMatrix() {
@@ -143,6 +160,9 @@ export function formatPdfError(error: unknown): string {
     }
     if (msg.includes("standardFontDataUrl")) {
       return "تعذّر قراءة ملف PDF على الخادم (ملفات خطوط PDF غير متاحة).";
+    }
+    if (msg.includes("pdf.worker") || msg.includes("fake worker")) {
+      return "تعذّر قراءة ملف PDF على الخادم (ملف عامل pdfjs غير متاح).";
     }
     if (msg.includes("Failed to load external module pdfjs-dist")) {
       return "تعذّر على الخادم قراءة ملف PDF بسبب خطأ في pdfjs.";
