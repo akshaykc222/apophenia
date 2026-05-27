@@ -2,6 +2,8 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 export async function loadPdfJs() {
+  // pdfjs-dist may reference DOMMatrix at module-load time on Vercel.
+  ensureDomMatrix();
   return import("pdfjs-dist/legacy/build/pdf.mjs");
 }
 
