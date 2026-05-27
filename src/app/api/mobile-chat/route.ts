@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   buildSystemPromptWithContext,
   fetchPublishedContentContextBlock,
-  isContentRecommendationQuestion,
+  formatConversationContextForPrompt,
+  shouldFetchPublishedContext,
 } from "@/lib/ai/mobile-chat-context";
 import {
   enforceInformationSourceReply,
@@ -146,12 +147,15 @@ export async function POST(request: NextRequest) {
   }
 
   let systemContent = chatSettings.system_prompt;
-  if (token && isContentRecommendationQuestion(lastUser.content)) {
+  if (token && shouldFetchPublishedContext(userTexts)) {
     const supabase = createSupabaseForToken(token);
     const { block: contentBlock } = await fetchPublishedContentContextBlock(
       supabase,
-      lastUser.content
+      userTexts[userTexts.length - 1] ?? lastUser.content,
+      15,
+      userTexts
     );
+    systemContent += formatConversationContextForPrompt(userTexts);
     systemContent += buildSystemPromptWithContext(contentBlock);
   }
 

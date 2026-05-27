@@ -1,4 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  buildRagQueryFromConversation,
+  detectQueryIntent,
+  extractKuwaitSearchTerms,
+  formatConversationContextForPrompt,
+  GAZETTE_TOPIC_PATTERN,
+  normalizeKuwaitArabic,
+} from "@/lib/ai/mobile-chat-kuwait-ar";
 
 /** User wants suggestions from published gazette content (any tab / ministry). */
 const RECOMMENDATION_PATTERNS = [
@@ -7,26 +15,51 @@ const RECOMMENDATION_PATTERNS = [
   /أنسب|يناسب|مناسب|ملائم/iu,
   /اقترح|اقتراح|recommend/i,
   /شنو\s+(أ|ا)ختار|what\s+should\s+i/i,
+  /شنو|ايش|ايه\s+في/iu,
+  /قولي|علمني|دلني|دربني/iu,
+  /ابي|ابغى|أبي|أبغى|اريد|أريد/iu,
+  /في\s+(شي|شيء|ممارس|مناقص)/iu,
+  /عندكم|عندك|available/i,
   /مناقص[ةه]?/iu,
   /\btender\b/i,
+  /** Kuwait gazette: «ممارسة» = tender / procurement call (not generic «practice»). */
+  /ممارس[ةه]?|ممارسات/iu,
+  /\bpractice(s)?\b/i,
+  /\brfq\b/i,
+  /عطاء|عطائ/iu,
+  /معروض[ةه]?/iu,
+  /جديد[ةه]?|آخر|احدث|أحدث|الحين|هس[ةه]/iu,
+  /تسجيل|اسجل|سجّ?ل|register|تقديم|تقدم/i,
+  /شنو\s+(ال)?ممارس/iu,
+  /الممارسات\s+الموجود|المناقصات\s+الموجود/iu,
   /مرسوم|مراسيم|أحكام/i,
   /استدراك|استدراكات/i,
   /وزار[ةه]?/iu,
   /ministr/i,
   /خبر|أخبار|news/i,
-  /تسجيل|register/i,
   /شركة\s+تقن|technical\s+company/i,
   /أقدر\s+أقدم|أقدم\s+على/i,
   /محتوى\s+يناسب|يناسبني/i,
   /في\s+تبويب/i,
   /من\s+وزارة/i,
+  /موجود[ةه]?/iu,
 ];
 
 export function isContentRecommendationQuestion(text: string): boolean {
   const t = text.trim();
   if (!t) return false;
-  return RECOMMENDATION_PATTERNS.some((p) => p.test(t));
+  const n = normalizeKuwaitArabic(t);
+  return RECOMMENDATION_PATTERNS.some((p) => p.test(t) || p.test(n));
 }
+
+/** Fetch RAG when any turn asks about gazette content (incl. Kuwaiti follow-ups). */
+export function shouldFetchPublishedContext(userMessages: string[]): boolean {
+  if (userMessages.some((m) => isContentRecommendationQuestion(m))) return true;
+  const combined = buildRagQueryFromConversation(userMessages);
+  return GAZETTE_TOPIC_PATTERN.test(combined);
+}
+
+export { buildRagQueryFromConversation, formatConversationContextForPrompt };
 
 /** @deprecated Use isContentRecommendationQuestion */
 export const isTenderRelatedQuestion = isContentRecommendationQuestion;
@@ -162,7 +195,7 @@ const CATEGORY_SLUG_HINTS: { slug: string; patterns: RegExp[] }[] = [
 ];
 
 function normalizeForMatch(s: string): string {
-  return s.replace(/\s+/g, " ").trim().toLowerCase();
+  return normalizeKuwaitArabic(s);
 }
 
 export function parseContentQueryFilters(
@@ -215,7 +248,9 @@ export function parseContentQueryFilters(
     }
   }
 
-  if (/مناقص|tender/i.test(q)) contentTypes.add("tender");
+  if (/مناقص|ممارس[ةه]?|ممارسات|tender|عطاء|\brfq\b|practice/i.test(q)) {
+    contentTypes.add("tender");
+  }
   if (/مرسوم|مراسيم|أحكام|decree/i.test(q)) contentTypes.add("decree");
   if (/استدراك|addendum/i.test(q)) contentTypes.add("addendum");
   if (/خبر|أخبار|news|article/i.test(q)) contentTypes.add("article");
@@ -247,7 +282,7 @@ export function parseContentQueryFilters(
 
 function searchTermsFromQuery(query: string): string[] {
   const t = query.toLowerCase();
-  const terms = new Set<string>();
+  const terms = new Set(extractKuwaitSearchTerms(query));
 
   // IT / tech company — do NOT add «استشارات» (too broad; matches misclassified tenders)
   if (/تقن|technical|technology|software|برمج|digital|رقم/i.test(t)) {
@@ -272,7 +307,6 @@ function searchTermsFromQuery(query: string): string[] {
     terms.add("برمجيات");
     terms.add("حاسوب");
     terms.add("computer");
-    // Do NOT add «نظام» / «systems» — matches «Siren System Modules» falsely
   }
 
   if (/إنشاء|construction/i.test(t)) terms.add("إنشاء");
@@ -281,12 +315,7 @@ function searchTermsFromQuery(query: string): string[] {
     terms.add("استشارات");
   }
 
-  const words = query
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    .split(/\s+/)
-    .filter((w) => w.length >= 3);
-  words.forEach((w) => terms.add(w));
-  return [...terms].slice(0, 12);
+  return [...terms].slice(0, 14);
 }
 
 /** Strong IT signals — excludes bare «system/modules» (matches oil/hardware tenders). */
@@ -312,7 +341,8 @@ function scoreRow(
   row: ContentRow,
   terms: string[],
   userQuery: string,
-  filters: ContentQueryFilters
+  filters: ContentQueryFilters,
+  intent = detectQueryIntent(userQuery)
 ): number {
   const blob = [
     row.title_ar,
@@ -328,11 +358,37 @@ function scoreRow(
 
   let score = 0;
   for (const term of terms) {
-    if (blob.includes(term.toLowerCase())) score += 2;
+    const tn = normalizeKuwaitArabic(term);
+    if (blob.includes(term.toLowerCase()) || blob.includes(tn)) score += 2;
   }
 
   const ministryName = relName(row.ministry);
   const tenderCat = relName(row.tender_category);
+
+  // Open deadline + registration link — important for Kuwaiti «اسجل» / «جديدة»
+  if (row.deadline_at) {
+    const deadline = new Date(row.deadline_at);
+    const now = new Date();
+    if (deadline >= now) {
+      if (intent.wantsNew || intent.wantsRegister) score += 8;
+      else score += 3;
+    } else if (intent.wantsNew || intent.wantsRegister) {
+      score -= 10;
+    }
+  } else if (intent.wantsRegister) {
+    score -= 2;
+  }
+
+  if (intent.wantsRegister && row.application_url?.trim()) score += 12;
+
+  if (intent.wantsNew && row.published_at) {
+    const ageDays =
+      (Date.now() - new Date(row.published_at).getTime()) / 86400000;
+    if (ageDays <= 14) score += 6;
+    else if (ageDays <= 45) score += 3;
+  }
+
+  if (intent.wantsList && row.content_type === "tender") score += 2;
 
   // Industry + tender_category alignment
   if (filters.industryHint && row.content_type === "tender") {
@@ -399,20 +455,31 @@ function formatContentLine(row: ContentRow, index: number): string {
 
 /**
  * Loads published content filtered by category / ministry / type inferred from the question.
+ * Pass `conversationUserMessages` to merge Kuwaiti multi-turn intent (e.g. «شنو الممارسات» then «ابي اسجل»).
  */
 export async function fetchPublishedContentContextBlock(
   supabase: SupabaseClient,
   userQuery: string,
-  limit = 15
+  limit = 15,
+  conversationUserMessages: string[] = []
 ): Promise<{ block: string; filters: ContentQueryFilters }> {
+  const ragQuery =
+    conversationUserMessages.length > 0
+      ? buildRagQueryFromConversation(conversationUserMessages)
+      : userQuery;
+
   const { categories, ministries, tenderCategories } =
     await loadReferenceData(supabase);
   const filters = parseContentQueryFilters(
-    userQuery,
+    ragQuery,
     categories,
     ministries,
     tenderCategories
   );
+
+  const intent = detectQueryIntent(ragQuery);
+  const pickLimit =
+    intent.wantsList && filters.contentTypes.includes("tender") ? 20 : limit;
 
   let query = supabase
     .from("content_items")
@@ -463,10 +530,10 @@ export async function fetchPublishedContentContextBlock(
     return { block: hint, filters };
   }
 
-  const terms = searchTermsFromQuery(userQuery);
+  const terms = searchTermsFromQuery(ragQuery);
   const scored = rows.map((row) => ({
     row,
-    score: scoreRow(row, terms, userQuery, filters),
+    score: scoreRow(row, terms, ragQuery, filters, intent),
   }));
   scored.sort((a, b) => b.score - a.score);
 
@@ -486,12 +553,14 @@ export async function fetchPublishedContentContextBlock(
         filters,
       };
     }
-    picked = techMatches.slice(0, limit);
+    picked = techMatches.slice(0, pickLimit);
   } else if (filters.industryHint) {
     const minScore = 4;
     const positive = scored.filter((s) => s.score >= minScore);
     picked =
-      positive.length > 0 ? positive.slice(0, limit) : scored.slice(0, limit);
+      positive.length > 0
+        ? positive.slice(0, pickLimit)
+        : scored.slice(0, pickLimit);
     if (positive.length === 0 && scored.length > 0) {
       return {
         block:
@@ -501,10 +570,12 @@ export async function fetchPublishedContentContextBlock(
       };
     }
   } else {
-    const minScore = 1;
+    const minScore = intent.wantsList ? 0 : 1;
     const positive = scored.filter((s) => s.score >= minScore);
     picked =
-      positive.length > 0 ? positive.slice(0, limit) : scored.slice(0, limit);
+      positive.length > 0
+        ? positive.slice(0, pickLimit)
+        : scored.slice(0, pickLimit);
   }
 
   const filterDesc =
@@ -541,8 +612,18 @@ export function buildSystemPromptWithContext(contentContext: string): string {
 بيانات من قاعدة التطبيق (محتوى منشور — كل التبويبات والوزارات):
 ${contentContext}
 
+المستخدم يكتب غالباً باللهجة الكويتية (شنو، ايه، ابي، اسجل، ممارسة، عطاء، الحين، معروضة…). افهم المقصد لا ترفض:
+- «ممارسة/ممارسات/عطاء» = مناقصة منشورة في الجريدة.
+- «اسجل/تقديم» = يريد مناقصة مفتوحة + رابط أو آخر موعد.
+- «شنو موجود/الجديد» = اعرض قائمة مختصرة من البيانات أدناه.
+
+عند سؤال المستخدم عن أفضل/أنسب محتوى، أو عن «ممارسة/ممارسات» (تعني مناقصة/عطاء في الجريدة — ليست «ممارسة» عامة):
+- إذا سأل عن ممارسة جديدة أو التسجيل/التقديم: اعرض حتى 5 مناقصات منشورة حديثاً مع العنوان والجهة وآخر موعد ورابط التقديم إن وُجد.
+- لا ترفض ولا تستخدم رد «إنسان حقيقي».
+
 عند سؤال المستخدم عن أفضل/أنسب محتوى (مناقصة، مرسوم، استدراك، خبر، وزارة، أو تبويب):
 - اختر حتى 3 عناصر من القائمة أعلاه فقط، حسب نوع السؤال والجهة/التبويب/تصنيف المناقصة (خدمات/إنشاءات/توريد/استشارات) المذكور.
+- إذا طلب قائمة ممارسات/مناقصات: اذكر حتى 5 عناصر من القائمة بترقيم واضح.
 - اذكر النوع [مناقصة/مرسوم/استدراك/خبر]، العنوان، الجهة، التبويب، تصنيف المناقصة، وآخر موعد أو رابط إن وُجد.
 - إذا سُئل عن «شركة تقنية» أو IT: اختر فقط مناقصات يظهر في عنوانها/ملخصها تقنية/برمجيات/اتصالات/أنظمة رقمية — لا تقترح معدات غير تقنية (مثل صفارات/نفط) ولا استشارات عامة بلا صلة.
 - إذا لا يوجد تطابق واضح، قل ذلك صراحة ووجّهه لتبويب المناقصات والبحث — لا تخترع ولا تختار أقرب عنصر غير مناسب.
