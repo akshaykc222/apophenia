@@ -37,6 +37,7 @@ export async function autoPublishExtractedItem(
     .eq("issue_id", params.issueId)
     .eq("page_start", params.pageStart)
     .eq("page_end", params.pageEnd)
+    .eq("title_ar", title)
     .maybeSingle();
 
   if (existing) {

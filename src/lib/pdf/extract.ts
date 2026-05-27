@@ -51,6 +51,25 @@ const TENDER_KEYWORDS = ["مناقصة", "مزاد", "عطاء", "تأهيل"];
 const DECREE_KEYWORDS = ["مرسوم", "قرار", "أمر أميري", "قانون رقم"];
 const ADDENDUM_KEYWORDS = ["استدراك", "تصحيح", "إلغاء البند"];
 
+const PAGE_MARKER_RE = /--- صفحة (\d+) ---/g;
+
+/** Infer real page span from text we inject in extractPageRange (not the batch bounds). */
+export function inferSectionPageRange(
+  rawText: string,
+  fallbackStart: number,
+  fallbackEnd: number
+): { pageStart: number; pageEnd: number } {
+  const pages: number[] = [];
+  for (const match of rawText.matchAll(PAGE_MARKER_RE)) {
+    const n = parseInt(match[1], 10);
+    if (Number.isFinite(n)) pages.push(n);
+  }
+  if (pages.length === 0) {
+    return { pageStart: fallbackStart, pageEnd: fallbackEnd };
+  }
+  return { pageStart: Math.min(...pages), pageEnd: Math.max(...pages) };
+}
+
 export function detectSections(
   fullText: string,
   pageStart: number,
@@ -75,6 +94,11 @@ export function detectSections(
   const flush = (endLine: number) => {
     if (chunk.length === 0) return;
     const text = chunk.join("\n");
+    const { pageStart: sectionStart, pageEnd: sectionEnd } = inferSectionPageRange(
+      text,
+      pageStart,
+      pageEnd
+    );
     let suggestedType: DetectedSection["suggestedType"] = "article";
     let confidence = 0.5;
 
@@ -93,8 +117,8 @@ export function detectSections(
     }
 
     sections.push({
-      pageStart,
-      pageEnd,
+      pageStart: sectionStart,
+      pageEnd: sectionEnd,
       rawText: text,
       suggestedType,
       confidence,
