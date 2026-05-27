@@ -135,7 +135,11 @@ export default async function IssueDetailPage({
         </CardContent>
       </Card>
 
-      <IssueActions issueId={id} publishedCount={publishedCount ?? 0} />
+      <IssueActions
+        issueId={id}
+        publishedCount={publishedCount ?? 0}
+        extractionStatus={status}
+      />
     </div>
   );
 }

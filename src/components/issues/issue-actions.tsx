@@ -9,13 +9,38 @@ import Link from "next/link";
 export function IssueActions({
   issueId,
   publishedCount = 0,
+  extractionStatus = "pending",
 }: {
   issueId: string;
   publishedCount?: number;
+  extractionStatus?: string;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [showRerunConfirm, setShowRerunConfirm] = useState(false);
+
+  const canStart =
+    extractionStatus === "pending" || extractionStatus === "failed";
+
+  async function startExtraction() {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/issues/${issueId}/start-extraction`, {
+        method: "POST",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(
+          (data as { error?: string }).error ??
+            "فشل بدء الاستخراج. تحقق من Inngest على Vercel."
+        );
+      }
+    } catch {
+      alert("فشل الاتصال بالخادم");
+    }
+    setLoading(false);
+    router.refresh();
+  }
 
   async function rerunExtraction() {
     setLoading(true);
@@ -46,6 +71,11 @@ export function IssueActions({
       <Link href={`/issues/${issueId}/review`}>
         <Button variant="secondary">مراجعة يدوية (اختياري)</Button>
       </Link>
+      {canStart && (
+        <Button onClick={startExtraction} disabled={loading}>
+          {loading ? "جاري البدء..." : "بدء الاستخراج"}
+        </Button>
+      )}
       <Button
         variant="outline"
         onClick={() => setShowRerunConfirm(true)}
