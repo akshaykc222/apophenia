@@ -5,7 +5,7 @@ import {
   extractPageRange,
   getPdfPageCount,
   suggestTitleAndSummary,
-} from "../src/lib/pdf/extract.ts";
+} from "../src/lib/pdf/extract";
 
 const pdfPath = process.argv[2];
 if (!pdfPath) {

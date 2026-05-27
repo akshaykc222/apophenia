@@ -41,7 +41,7 @@ export async function autoPublishExtractedItem(
     .maybeSingle();
 
   if (existing) {
-    return { published: false, skipped: "duplicate_page_range" };
+    return { published: false, skipped: "duplicate_content" };
   }
 
   const searchText = buildSearchText([

@@ -30,7 +30,7 @@ export async function extractPageRange(
       const text = content.items
         .map((item) => ("str" in item ? item.str : ""))
         .join(" ");
-      parts.push(`--- صفحة ${p} ---\n${text}`);
+      parts.push(`${PDF_PAGE_MARKER_PREFIX}${p} ---\n${text}`);
     }
 
     return parts.join("\n\n");
@@ -51,7 +51,21 @@ const TENDER_KEYWORDS = ["مناقصة", "مزاد", "عطاء", "تأهيل"];
 const DECREE_KEYWORDS = ["مرسوم", "قرار", "أمر أميري", "قانون رقم"];
 const ADDENDUM_KEYWORDS = ["استدراك", "تصحيح", "إلغاء البند"];
 
-const PAGE_MARKER_RE = /--- صفحة (\d+) ---/g;
+/** ASCII marker — reliable in serverless bundles; Arabic legacy markers still parsed. */
+export const PDF_PAGE_MARKER_PREFIX = "--- PAGE ";
+
+function pageMarkerRegex() {
+  return /--- (?:PAGE|صفحة) (\d+) ---/g;
+}
+
+function collectPageNumbers(rawText: string): number[] {
+  const pages: number[] = [];
+  for (const match of rawText.matchAll(pageMarkerRegex())) {
+    const n = parseInt(match[1], 10);
+    if (Number.isFinite(n)) pages.push(n);
+  }
+  return pages;
+}
 
 /** Infer real page span from text we inject in extractPageRange (not the batch bounds). */
 export function inferSectionPageRange(
@@ -59,18 +73,75 @@ export function inferSectionPageRange(
   fallbackStart: number,
   fallbackEnd: number
 ): { pageStart: number; pageEnd: number } {
-  const pages: number[] = [];
-  for (const match of rawText.matchAll(PAGE_MARKER_RE)) {
-    const n = parseInt(match[1], 10);
-    if (Number.isFinite(n)) pages.push(n);
-  }
+  const pages = collectPageNumbers(rawText);
   if (pages.length === 0) {
     return { pageStart: fallbackStart, pageEnd: fallbackEnd };
   }
   return { pageStart: Math.min(...pages), pageEnd: Math.max(...pages) };
 }
 
+/** Split batch text into per-page blocks before line-based section detection. */
+function splitByPageMarkers(
+  fullText: string,
+  fallbackStart: number,
+  fallbackEnd: number
+): { pageStart: number; pageEnd: number; rawText: string }[] {
+  const parts = fullText.split(/(?=--- (?:PAGE|صفحة) \d+ ---)/);
+  const blocks: { pageStart: number; pageEnd: number; rawText: string }[] = [];
+
+  for (const part of parts) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+    const header = trimmed.match(/^--- (?:PAGE|صفحة) (\d+) ---/);
+    if (!header) continue;
+    const page = parseInt(header[1], 10);
+    if (!Number.isFinite(page)) continue;
+    blocks.push({
+      pageStart: page,
+      pageEnd: page,
+      rawText: trimmed,
+    });
+  }
+
+  if (blocks.length > 0) return blocks;
+
+  return [
+    {
+      pageStart: fallbackStart,
+      pageEnd: fallbackEnd,
+      rawText: fullText.slice(0, 8000),
+    },
+  ];
+}
+
 export function detectSections(
+  fullText: string,
+  pageStart: number,
+  pageEnd: number
+): DetectedSection[] {
+  const pageBlocks = splitByPageMarkers(fullText, pageStart, pageEnd);
+  const sections: DetectedSection[] = [];
+
+  for (const block of pageBlocks) {
+    sections.push(...detectSectionsInBlock(block.rawText, block.pageStart, block.pageEnd));
+  }
+
+  if (sections.length === 0) {
+    return [
+      {
+        pageStart,
+        pageEnd,
+        rawText: fullText.slice(0, 8000),
+        suggestedType: "article",
+        confidence: 0.4,
+      },
+    ];
+  }
+
+  return dedupeSections(sections);
+}
+
+function detectSectionsInBlock(
   fullText: string,
   pageStart: number,
   pageEnd: number
@@ -156,7 +227,7 @@ export function detectSections(
     });
   }
 
-  return dedupeSections(sections);
+  return sections;
 }
 
 function dedupeSections(sections: DetectedSection[]): DetectedSection[] {
@@ -164,9 +235,9 @@ function dedupeSections(sections: DetectedSection[]): DetectedSection[] {
   for (const s of sections) {
     const overlap = result.find(
       (r) =>
-        overlapRatio(r.rawText, s.rawText) > 0.8 &&
         r.pageStart === s.pageStart &&
-        r.pageEnd === s.pageEnd
+        r.pageEnd === s.pageEnd &&
+        overlapRatio(r.rawText, s.rawText) > 0.92
     );
     if (!overlap) result.push(s);
   }

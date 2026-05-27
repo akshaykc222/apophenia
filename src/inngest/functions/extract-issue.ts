@@ -144,6 +144,7 @@ export const extractIssue = inngest.createFunction(
 
           const sections = detectSections(text, batchStart, batchEnd);
           let publishedInBatch = 0;
+          let skippedInBatch = 0;
 
           for (const section of sections) {
             const suggestion = await suggestContentItem(
@@ -172,6 +173,7 @@ export const extractIssue = inngest.createFunction(
                 actorId: issue.uploaded_by,
               });
               if (result.published) publishedInBatch++;
+              else skippedInBatch++;
             } else {
               await supabase.from("content_drafts").insert({
                 issue_id: issueId,
@@ -208,6 +210,10 @@ export const extractIssue = inngest.createFunction(
             })
             .eq("issue_id", issueId)
             .eq("status", "running");
+
+          console.info(
+            `extract ${issueId} pages ${batchStart}-${batchEnd}: sections=${sections.length} published=${publishedInBatch} skipped=${skippedInBatch}`
+          );
 
           return publishedInBatch;
         }
