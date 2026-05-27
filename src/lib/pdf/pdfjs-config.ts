@@ -148,9 +148,14 @@ export function buildPdfDocumentInit(buffer: ArrayBuffer) {
   // pdfjs-dist legacy build expects DOMMatrix in serverless runtimes.
   ensureDomMatrix();
 
-  const standardFontDataUrl = pathToFileURL(
-    path.join(process.cwd(), "node_modules", "pdfjs-dist", "standard_fonts")
-  ).toString();
+  // pdfjs requires standardFontDataUrl to end with a trailing slash.
+  const standardFontsDir = path.join(
+    process.cwd(),
+    "node_modules",
+    "pdfjs-dist",
+    "standard_fonts"
+  );
+  const standardFontDataUrl = pathToFileURL(`${standardFontsDir}/`).href;
 
   return {
     data: new Uint8Array(buffer),
@@ -166,7 +171,11 @@ export function formatPdfError(error: unknown): string {
     if (msg.includes("DOMMatrix is not defined")) {
       return "تعذّر على الخادم قراءة ملف PDF (DOMMatrix غير متوفر).";
     }
-    if (msg.includes("standardFontDataUrl")) {
+    if (
+      msg.includes("standardFontDataUrl") ||
+      msg.includes("Invalid factory url") ||
+      msg.includes("must include trailing slash")
+    ) {
       return "تعذّر قراءة ملف PDF على الخادم (ملفات خطوط PDF غير متاحة).";
     }
     if (
