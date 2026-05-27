@@ -141,6 +141,9 @@ export function formatPdfError(error: unknown): string {
     if (msg.includes("DOMMatrix is not defined")) {
       return "تعذّر على الخادم قراءة ملف PDF (DOMMatrix غير متوفر).";
     }
+    if (msg.includes("standardFontDataUrl")) {
+      return "تعذّر قراءة ملف PDF على الخادم (ملفات خطوط PDF غير متاحة).";
+    }
     if (msg.includes("Failed to load external module pdfjs-dist")) {
       return "تعذّر على الخادم قراءة ملف PDF بسبب خطأ في pdfjs.";
     }
