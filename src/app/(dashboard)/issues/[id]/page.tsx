@@ -126,7 +126,11 @@ export default async function IssueDetailPage({
           )}
           {issue.error_message && (
             <p className="rounded-lg bg-red-900/30 p-3 text-sm text-red-300">
-              {issue.error_message}
+              {issue.error_message.includes("DOMMatrix")
+                ? "تعذّر قراءة ملف PDF على Vercel. اضغط «إعادة الاستخراج» أو أعد المحاولة."
+                : issue.error_message.includes("pdfjs-dist")
+                  ? "تعذّر قراءة ملف PDF على Vercel بسبب خطأ في pdfjs."
+                  : issue.error_message}
             </p>
           )}
           {issue.notes && (
