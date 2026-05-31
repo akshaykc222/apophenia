@@ -42,6 +42,7 @@ export function UsersTable({ users }: UsersTableProps) {
               <th className="px-4 py-3 text-right">المستخدم</th>
               <th className="px-4 py-3 text-right">آخر دخول</th>
               <th className="px-4 py-3 text-right">الجهاز</th>
+              <th className="px-4 py-3 text-right">الاشتراك</th>
               <th className="px-4 py-3 text-right">الحالة</th>
             </tr>
           </thead>
@@ -72,6 +73,18 @@ export function UsersTable({ users }: UsersTableProps) {
                   )}
                 </td>
                 <td className="px-4 py-3">
+                  {u.subscription_active ? (
+                    <div>
+                      <Badge variant="success">مشترك</Badge>
+                      <p className="mt-1 text-xs text-zinc-500">
+                        {u.subscription_plan_name ?? u.subscription_label}
+                      </p>
+                    </div>
+                  ) : (
+                    <span className="text-zinc-600">—</span>
+                  )}
+                </td>
+                <td className="px-4 py-3">
                   {u.is_active ? (
                     <Badge variant="success">نشط</Badge>
                   ) : (
@@ -82,7 +95,7 @@ export function UsersTable({ users }: UsersTableProps) {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-zinc-500">
+                <td colSpan={6} className="px-4 py-10 text-center text-zinc-500">
                   {users.length === 0
                     ? "لا مستخدمين للتطبيق بعد"
                     : "لا نتائج للبحث"}

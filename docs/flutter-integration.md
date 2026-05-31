@@ -9,9 +9,11 @@ Guide for building the **read-only mobile app** that consumes published gazette 
 | **Supabase Postgres** | Yes | Primary API via `supabase_flutter` |
 | **Supabase Storage** (`assets`) | Yes | Public logos |
 | **Supabase Storage** (`gazettes`) | No | Admin-only PDFs |
-| **Vercel admin** (`apophenia-five.vercel.app`) | No | Do not call `/api/*` from Flutter |
+| **Vercel admin** (`apophenia-five.vercel.app`) | Yes (billing + chat) | `ADMIN_API_URL` — billing and mobile-chat only |
 
-The admin panel uploads PDFs, runs extraction (Inngest), and writes **`content_items`** with `is_published = true`. The Flutter app only **reads** published data.
+The admin panel uploads PDFs, runs extraction (Inngest), and writes **`content_items`** with `is_published = true`. The Flutter app reads published data **only with an active subscription** (RLS + paywall).
+
+See also: [billing-myfatoorah.md](./billing-myfatoorah.md)
 
 ```mermaid
 flowchart LR
@@ -65,7 +67,7 @@ final supabase = Supabase.instance.client;
 | `categories` | All rows |
 | `ministries` | All rows |
 | `tender_categories` | All rows |
-| `content_items` | Only `is_published = true` |
+| `content_items` | Only `is_published = true` **and** active subscription (`has_active_subscription`) |
 | `pdf_issues`, `content_drafts`, `admin_users`, `audit_log` | Denied |
 
 Always add `.eq('is_published', true)` on content queries (defense in depth).
@@ -380,6 +382,20 @@ supabase
 
 ---
 
+## Subscriptions (MyFatoorah)
+
+See **[billing-myfatoorah.md](./billing-myfatoorah.md)**.
+
+| Endpoint | Auth |
+|----------|------|
+| `GET /api/billing/plans` | Public |
+| `GET /api/billing/me` | Bearer token |
+| `POST /api/billing/checkout` | Bearer token — body `{ "plan_id": "uuid" }` |
+
+Flutter opens `paymentUrl` in browser, then polls `/api/billing/me`. Main app shell shows paywall until `active: true`.
+
+---
+
 ## AI chat (Vercel API)
 
 The floating home-screen assistant calls the admin backend, **not** OpenAI from the device.
@@ -400,10 +416,11 @@ Requires Flutter **Supabase Auth** (consumer accounts). `OPENAI_API_KEY` lives o
 
 ## Checklist
 
-- [ ] Supabase migrations `001`–`007` applied on shared project
+- [ ] Supabase migrations `001`–`012` applied on shared project
 - [ ] Anon/publishable key in Flutter only (no service role)
 - [ ] 3 categories load; feed filtered by `category_id`
-- [ ] Only `is_published == true` items appear
+- [ ] Only subscribed users see published content (`012_billing` RLS)
+- [ ] `ADMIN_API_URL` set; billing paywall + checkout work
 - [ ] Detail + tender URL + search work
 - [ ] Tested iOS and Android
 

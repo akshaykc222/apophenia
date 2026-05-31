@@ -119,3 +119,49 @@ export interface AuditLogEntry {
   payload: Record<string, unknown> | null;
   created_at: string;
 }
+
+export type PaymentTransactionStatus = "pending" | "paid" | "failed" | "expired";
+export type UserSubscriptionStatus = "active" | "expired" | "cancelled";
+
+export interface SubscriptionPlan {
+  id: string;
+  name_ar: string;
+  name_en: string | null;
+  description_ar: string | null;
+  price_kwd: number;
+  duration_days: number;
+  is_active: boolean;
+  sort_order: number;
+  features: string[] | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PaymentTransaction {
+  id: string;
+  user_id: string;
+  plan_id: string;
+  status: PaymentTransactionStatus;
+  amount_kwd: number;
+  invoice_id: string | null;
+  payment_id: string | null;
+  mf_reference: string | null;
+  customer_reference: string | null;
+  session_id: string | null;
+  payment_url: string | null;
+  paid_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserSubscription {
+  id: string;
+  user_id: string;
+  plan_id: string;
+  transaction_id: string | null;
+  status: UserSubscriptionStatus;
+  starts_at: string;
+  expires_at: string;
+  created_at: string;
+  updated_at: string;
+}

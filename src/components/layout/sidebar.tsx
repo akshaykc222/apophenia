@@ -15,6 +15,9 @@ import {
   Users,
   ScrollText,
   LogOut,
+  CreditCard,
+  Receipt,
+  UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/brand";
@@ -29,6 +32,9 @@ const navItems = [
   { href: "/ministries", label: "الجهات", icon: Building2 },
   { href: "/tender-categories", label: "تصنيفات المناقصات", icon: Tags },
   { href: "/users", label: "مستخدمون", icon: Users },
+  { href: "/subscriptions/plans", label: "خطط الاشتراك", icon: CreditCard },
+  { href: "/subscriptions/enrolled", label: "المشتركون", icon: UserCheck },
+  { href: "/subscriptions/transactions", label: "معاملات الدفع", icon: Receipt },
   { href: "/settings", label: "الإعدادات", icon: Settings },
   { href: "/help", label: "المساعدة", icon: CircleHelp },
   { href: "/notifications/push", label: "إرسال إشعارات", icon: Bell },

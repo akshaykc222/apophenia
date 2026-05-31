@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "clear:gazette": "npx tsx scripts/clear-gazette-data.mts",
+    "clear:gazette:confirm": "npx tsx scripts/clear-gazette-data.mts --confirm"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

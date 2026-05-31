@@ -16,6 +16,7 @@ import {
 import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/env";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getMobileChatSettings } from "@/lib/settings/mobile-chat-settings";
+import { getActiveSubscription } from "@/lib/billing/auth";
 
 const MAX_MESSAGES = 20;
 const MAX_CONTENT_LEN = 4000;
@@ -100,6 +101,15 @@ export async function POST(request: NextRequest) {
   }
   if (!user) {
     return jsonResponse({ error: "Unauthorized" }, 401);
+  }
+
+  const service = createServiceClient();
+  const activeSub = await getActiveSubscription(service, user.id);
+  if (!activeSub) {
+    return jsonResponse(
+      { error: "Subscription required", code: "subscription_required" },
+      402
+    );
   }
 
   let body: unknown;

@@ -1,4 +1,5 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { fetchSubscriptionMetaByUser } from "@/lib/billing/admin-data";
 
 /** User considered active if signed in or refreshed FCM token within this window. */
 export const ACTIVE_USER_DAYS = 30;
@@ -12,6 +13,9 @@ export type AppUserRow = {
   has_device_token: boolean;
   device_updated_at: string | null;
   is_active: boolean;
+  subscription_active: boolean;
+  subscription_label: string;
+  subscription_plan_name: string | null;
 };
 
 export type AppUserAnalytics = {
@@ -92,7 +96,11 @@ export function isAppUserActive(
 
 export function toAppUserRows(
   authUsers: User[],
-  deviceMeta: Map<string, { hasToken: boolean; lastUpdated: string | null }>
+  deviceMeta: Map<string, { hasToken: boolean; lastUpdated: string | null }>,
+  subscriptionMeta: Map<
+    string,
+    { status_label: string; plan_name_ar: string | null; active: boolean }
+  > = new Map()
 ): AppUserRow[] {
   const now = Date.now();
 
@@ -101,6 +109,8 @@ export function toAppUserRows(
       const device = deviceMeta.get(u.id);
       const lastSignIn = u.last_sign_in_at ?? null;
       const deviceUpdated = device?.lastUpdated ?? null;
+
+      const sub = subscriptionMeta.get(u.id);
 
       return {
         id: u.id,
@@ -111,6 +121,9 @@ export function toAppUserRows(
         has_device_token: device?.hasToken ?? false,
         device_updated_at: deviceUpdated,
         is_active: isAppUserActive(lastSignIn, deviceUpdated, now),
+        subscription_active: sub?.active ?? false,
+        subscription_label: sub?.status_label ?? "بدون اشتراك",
+        subscription_plan_name: sub?.plan_name_ar ?? null,
       };
     })
     .sort(
@@ -123,12 +136,13 @@ export async function fetchAppUsersData(service: SupabaseClient): Promise<{
   users: AppUserRow[];
   analytics: AppUserAnalytics;
 }> {
-  const [authUsers, deviceMeta] = await Promise.all([
+  const [authUsers, deviceMeta, subscriptionMeta] = await Promise.all([
     listAppAuthUsers(service),
     getDeviceTokenMeta(service),
+    fetchSubscriptionMetaByUser(service).catch(() => new Map()),
   ]);
 
-  const users = toAppUserRows(authUsers, deviceMeta);
+  const users = toAppUserRows(authUsers, deviceMeta, subscriptionMeta);
   const weekCutoff = Date.now() - msDays(7);
 
   const analytics: AppUserAnalytics = {

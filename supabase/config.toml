@@ -1,0 +1,10 @@
+# Apophenia — Supabase local config (Edge Functions deploy target: ixqrfjqhlxpjsbaswcpk)
+
+[functions.myfatoorah-webhook]
+verify_jwt = false
+
+[functions.billing-checkout]
+verify_jwt = true
+
+[functions.billing-me]
+verify_jwt = true
