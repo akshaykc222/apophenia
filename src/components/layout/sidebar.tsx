@@ -18,6 +18,7 @@ import {
   CreditCard,
   Receipt,
   UserCheck,
+  Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/brand";
@@ -32,6 +33,7 @@ const navItems = [
   { href: "/ministries", label: "الجهات", icon: Building2 },
   { href: "/tender-categories", label: "تصنيفات المناقصات", icon: Tags },
   { href: "/users", label: "مستخدمون", icon: Users },
+  { href: "/capt-tenders", label: "مناقصات CAPT", icon: Globe },
   { href: "/subscriptions/plans", label: "خطط الاشتراك", icon: CreditCard },
   { href: "/subscriptions/enrolled", label: "المشتركون", icon: UserCheck },
   { href: "/subscriptions/transactions", label: "معاملات الدفع", icon: Receipt },

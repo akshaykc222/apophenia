@@ -13,7 +13,7 @@ Guide for building the **read-only mobile app** that consumes published gazette 
 
 The admin panel uploads PDFs, runs extraction (Inngest), and writes **`content_items`** with `is_published = true`. The Flutter app reads published data **only with an active subscription** (RLS + paywall).
 
-See also: [billing-myfatoorah.md](./billing-myfatoorah.md)
+See also: [billing-myfatoorah.md](./billing-myfatoorah.md) · [Flutter billing + CAPT tenders tab](./flutter-billing-and-capt-tenders.md)
 
 ```mermaid
 flowchart LR
