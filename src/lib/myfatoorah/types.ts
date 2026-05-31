@@ -5,6 +5,13 @@ export interface MyFatoorahApiResponse<T> {
   Data: T;
 }
 
+export interface SendPaymentData {
+  InvoiceId: number;
+  InvoiceURL: string;
+  CustomerReference: string;
+  UserDefinedField: string;
+}
+
 export interface InitiateSessionData {
   SessionId: string;
   CountryCode: string;

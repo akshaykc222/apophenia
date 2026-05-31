@@ -4,6 +4,7 @@ import type {
   GetPaymentStatusData,
   InitiateSessionData,
   MyFatoorahApiResponse,
+  SendPaymentData,
 } from "./types";
 
 async function mfRequest<T>(
@@ -39,6 +40,39 @@ async function mfRequest<T>(
 export async function initiateSession(customerIdentifier: string) {
   const result = await mfRequest<InitiateSessionData>("/v2/InitiateSession", {
     CustomerIdentifier: customerIdentifier,
+  });
+  return result.Data;
+}
+
+/** Hosted payment page — returns InvoiceURL for browser redirect (Flutter url_launcher). */
+export async function sendPayment(params: {
+  invoiceValue: number;
+  customerName: string;
+  customerReference: string;
+  callBackUrl: string;
+  errorUrl: string;
+  customerEmail?: string;
+  customerMobile?: string;
+  mobileCountryCode?: string;
+  userDefinedField?: string;
+  language?: "AR" | "EN";
+}) {
+  const { currency } = getMyFatoorahConfig();
+  const mobile = (params.customerMobile ?? "").replace(/\D/g, "").slice(0, 11);
+
+  const result = await mfRequest<SendPaymentData>("/v2/SendPayment", {
+    NotificationOption: "LNK",
+    InvoiceValue: params.invoiceValue,
+    DisplayCurrencyIso: currency,
+    CustomerName: params.customerName,
+    CustomerEmail: params.customerEmail ?? "",
+    CustomerMobile: mobile,
+    MobileCountryCode: params.mobileCountryCode ?? "965",
+    CustomerReference: params.customerReference,
+    CallBackUrl: params.callBackUrl,
+    ErrorUrl: params.errorUrl,
+    UserDefinedField: params.userDefinedField ?? params.customerReference,
+    Language: params.language ?? "AR",
   });
   return result.Data;
 }

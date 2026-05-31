@@ -17,10 +17,20 @@ Run on project **apophenia** (`ixqrfjqhlxpjsbaswcpk`):
 | `MYFATOORAH_BASE_URL` | `https://apitest.myfatoorah.com` or live `https://api.myfatoorah.com` |
 | `MYFATOORAH_WEBHOOK_SECRET` | Webhook V2 secure key |
 | `MYFATOORAH_CURRENCY` | `KWD` |
-| `APP_URL` | `https://apophenia-five.vercel.app` |
+| `NEXT_PUBLIC_APP_URL` or `APP_URL` | `https://apophenia-five.vercel.app` (callback URLs for MyFatoorah) |
 | `MOBILE_CORS_ORIGIN` | `*` or your app origin |
 
 Redeploy after setting secrets.
+
+**Test vs live:** use `MYFATOORAH_BASE_URL=https://apitest.myfatoorah.com` with a **test** API key from the MyFatoorah test portal; live keys require `https://api.myfatoorah.com`. A mismatched or expired key returns checkout errors in the app.
+
+### Troubleshooting checkout
+
+| Symptom | Fix |
+|---------|-----|
+| App: «تعذر بدء الدفع» / API 502 `InitiateSession: token is not valid` | Regenerate API key in [MyFatoorah portal](https://portal.myfatoorah.com/) and update `MYFATOORAH_API_KEY` on Vercel; redeploy |
+| 503 `Payment gateway not configured` | Set `MYFATOORAH_API_KEY` on Vercel |
+| Payment succeeds but subscription stays inactive | Check webhook URL + `MYFATOORAH_WEBHOOK_SECRET` |
 
 ## 3. MyFatoorah webhook
 
@@ -56,7 +66,9 @@ Billing uses Vercel APIs (Bearer = Supabase access token):
 | `/api/billing/me` | GET |
 | `/api/billing/checkout` | POST `{ "plan_id": "uuid" }` |
 
-Checkout: open `paymentUrl` → webhook activates subscription → poll `/api/billing/me` until `active: true`. Lifetime plans return `is_lifetime: true` and `days_remaining: null`.
+Checkout uses **SendPayment** (`NotificationOption: LNK`) → returns `InvoiceURL` as `paymentUrl`. Open in browser → webhook activates subscription → poll `/api/billing/me` until `active: true`. Lifetime plans return `is_lifetime: true` and `days_remaining: null`.
+
+Do **not** use `InitiateSession` for Flutter browser checkout — that flow is for [Embedded Payment](https://docs.myfatoorah.com/docs/embedded-payment) only. [InitiatePayment](https://docs.myfatoorah.com/docs/initiate-payment) is optional; [ExecutePayment](https://docs.myfatoorah.com/docs/execute-payment) with `PaymentMethodId` is an alternative if you pick one method in-app.
 
 ## 6. Content gating
 

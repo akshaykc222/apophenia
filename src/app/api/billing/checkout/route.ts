@@ -5,7 +5,7 @@ import {
   billingJsonResponse,
   verifyBillingBearer,
 } from "@/lib/billing/auth";
-import { executePayment, initiateSession } from "@/lib/myfatoorah/client";
+import { sendPayment } from "@/lib/myfatoorah/client";
 import { getMyFatoorahConfig } from "@/lib/myfatoorah/config";
 
 export async function OPTIONS() {
@@ -77,9 +77,7 @@ export async function POST(request: NextRequest) {
   const errorUrl = `${mfConfig.appUrl}/api/billing/callback?status=failed&transactionId=${tx.id}`;
 
   try {
-    const session = await initiateSession(user.id);
-    const payment = await executePayment({
-      sessionId: session.SessionId,
+    const payment = await sendPayment({
       invoiceValue: amount,
       customerReference,
       customerName:
@@ -97,16 +95,14 @@ export async function POST(request: NextRequest) {
       .from("payment_transactions")
       .update({
         customer_reference: customerReference,
-        session_id: session.SessionId,
         invoice_id: String(payment.InvoiceId),
-        payment_url: payment.PaymentURL,
+        payment_url: payment.InvoiceURL,
       })
       .eq("id", tx.id);
 
     return billingJsonResponse({
       transactionId: tx.id,
-      sessionId: session.SessionId,
-      paymentUrl: payment.PaymentURL,
+      paymentUrl: payment.InvoiceURL,
       invoiceId: payment.InvoiceId,
     });
   } catch (e) {
@@ -116,6 +112,14 @@ export async function POST(request: NextRequest) {
       .eq("id", tx.id);
 
     const message = e instanceof Error ? e.message : "Payment initiation failed";
+    const lower = message.toLowerCase();
+    if (
+      lower.includes("token is not valid") ||
+      lower.includes("expired") ||
+      lower.includes("api key is not configured")
+    ) {
+      return billingJsonResponse({ error: "Payment gateway not configured" }, 503);
+    }
     return billingJsonResponse({ error: message }, 502);
   }
 }
