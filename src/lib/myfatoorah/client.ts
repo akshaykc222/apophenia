@@ -60,20 +60,25 @@ export async function sendPayment(params: {
   const { currency } = getMyFatoorahConfig();
   const mobile = (params.customerMobile ?? "").replace(/\D/g, "").slice(0, 11);
 
-  const result = await mfRequest<SendPaymentData>("/v2/SendPayment", {
+  const payload: Record<string, unknown> = {
     NotificationOption: "LNK",
     InvoiceValue: params.invoiceValue,
     DisplayCurrencyIso: currency,
     CustomerName: params.customerName,
     CustomerEmail: params.customerEmail ?? "",
-    CustomerMobile: mobile,
-    MobileCountryCode: params.mobileCountryCode ?? "965",
     CustomerReference: params.customerReference,
     CallBackUrl: params.callBackUrl,
     ErrorUrl: params.errorUrl,
     UserDefinedField: params.userDefinedField ?? params.customerReference,
     Language: params.language ?? "AR",
-  });
+  };
+
+  if (mobile.length >= 7) {
+    payload.MobileCountryCode = params.mobileCountryCode ?? "965";
+    payload.CustomerMobile = mobile;
+  }
+
+  const result = await mfRequest<SendPaymentData>("/v2/SendPayment", payload);
   return result.Data;
 }
 

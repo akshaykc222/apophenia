@@ -7,6 +7,10 @@ import {
 } from "@/lib/billing/auth";
 import { sendPayment } from "@/lib/myfatoorah/client";
 import { getMyFatoorahConfig } from "@/lib/myfatoorah/config";
+import {
+  loadAuthUserProfile,
+  resolveCustomerProfile,
+} from "@/lib/billing/customer-profile";
 
 export async function OPTIONS() {
   return new Response(null, { status: 204, headers: billingCorsHeaders() });
@@ -26,7 +30,13 @@ export async function POST(request: NextRequest) {
     return billingJsonResponse({ error: "Payment gateway not configured" }, 503);
   }
 
-  let body: { plan_id?: string };
+  let body: {
+    plan_id?: string;
+    customer_name?: string;
+    customer_email?: string;
+    customer_mobile?: string;
+    native_sdk?: boolean;
+  };
   try {
     body = await request.json();
   } catch {
@@ -39,7 +49,13 @@ export async function POST(request: NextRequest) {
   }
 
   const service = createServiceClient();
-  const user = auth.user!;
+  const jwtUser = auth.user!;
+  const authUser = (await loadAuthUserProfile(service, jwtUser.id)) ?? jwtUser;
+  const customer = resolveCustomerProfile(authUser, {
+    customer_name: body.customer_name,
+    customer_email: body.customer_email,
+    customer_mobile: body.customer_mobile,
+  });
 
   const { data: plan, error: planError } = await service
     .from("subscription_plans")
@@ -59,7 +75,7 @@ export async function POST(request: NextRequest) {
   const { data: tx, error: txError } = await service
     .from("payment_transactions")
     .insert({
-      user_id: user.id,
+      user_id: jwtUser.id,
       plan_id: plan.id,
       status: "pending",
       amount_kwd: amount,
@@ -72,6 +88,13 @@ export async function POST(request: NextRequest) {
     return billingJsonResponse({ error: txError?.message ?? "Failed to create transaction" }, 500);
   }
 
+  const nativeSdk = body.native_sdk === true;
+  if (nativeSdk) {
+    return billingJsonResponse({
+      transactionId: tx.id,
+    });
+  }
+
   const customerReference = tx.id;
   const callBackUrl = `${mfConfig.appUrl}/api/billing/callback?status=success&transactionId=${tx.id}`;
   const errorUrl = `${mfConfig.appUrl}/api/billing/callback?status=failed&transactionId=${tx.id}`;
@@ -80,12 +103,10 @@ export async function POST(request: NextRequest) {
     const payment = await sendPayment({
       invoiceValue: amount,
       customerReference,
-      customerName:
-        user.user_metadata?.full_name?.trim() ||
-        user.email?.split("@")[0] ||
-        "Apophenia User",
-      customerEmail: user.email ?? "",
-      customerMobile: user.phone ?? "",
+      customerName: customer.name,
+      customerEmail: customer.email,
+      customerMobile: customer.mobile,
+      mobileCountryCode: customer.mobileCountryCode,
       callBackUrl,
       errorUrl,
       userDefinedField: customerReference,

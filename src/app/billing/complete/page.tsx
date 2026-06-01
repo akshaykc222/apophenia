@@ -1,4 +1,3 @@
-import Link from "next/link";
 
 export default async function BillingCompletePage({
   searchParams,
@@ -35,12 +34,7 @@ export default async function BillingCompletePage({
         {transactionId && (
           <p className="font-mono text-xs text-zinc-600">{transactionId}</p>
         )}
-        <Link
-          href="/"
-          className="inline-block rounded-lg bg-white px-4 py-2 text-sm font-medium text-black"
-        >
-          لوحة الإدارة
-        </Link>
+
       </div>
     </main>
   );

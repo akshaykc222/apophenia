@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const transactionId = searchParams.get("transactionId");
   const status = searchParams.get("status");
+  const invoiceIdParam = searchParams.get("invoiceId");
 
   if (!transactionId) {
     return NextResponse.json({ error: "transactionId required" }, { status: 400 });
@@ -25,6 +26,14 @@ export async function GET(request: NextRequest) {
 
   if (!tx) {
     return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
+  }
+
+  if (invoiceIdParam && !tx.invoice_id) {
+    await service
+      .from("payment_transactions")
+      .update({ invoice_id: invoiceIdParam })
+      .eq("id", transactionId);
+    tx.invoice_id = invoiceIdParam;
   }
 
   if (tx.status === "paid") {
