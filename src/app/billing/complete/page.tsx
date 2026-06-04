@@ -1,3 +1,7 @@
+import Link from "next/link";
+import { PUBLIC_APP_NAME_AR } from "@/lib/legal/public-app";
+
+const APP_DEEP_LINK = "apophenia://subscription";
 
 export default async function BillingCompletePage({
   searchParams,
@@ -25,16 +29,36 @@ export default async function BillingCompletePage({
   };
 
   const msg = messages[result ?? "pending"] ?? messages.pending;
+  const isSuccess = result === "success";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-zinc-950 p-6 text-white">
-      <div className="max-w-md space-y-4 text-center">
+      <div className="max-w-md space-y-6 text-center">
         <h1 className={`text-2xl font-bold ${msg.tone}`}>{msg.title}</h1>
         <p className="text-zinc-400">{msg.body}</p>
         {transactionId && (
           <p className="font-mono text-xs text-zinc-600">{transactionId}</p>
         )}
 
+        <div className="flex flex-col gap-3 pt-2">
+          <a
+            href={APP_DEEP_LINK}
+            className="inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 text-base font-semibold text-zinc-900 transition hover:bg-zinc-200"
+          >
+            العودة إلى {PUBLIC_APP_NAME_AR}
+          </a>
+          {isSuccess && (
+            <p className="text-xs text-zinc-500">
+              ستصلك رسالة بريد وإشعار على جهازك عند اكتمال التفعيل.
+            </p>
+          )}
+          <Link
+            href="/privacy"
+            className="text-sm text-zinc-500 underline hover:text-zinc-300"
+          >
+            سياسة الخصوصية
+          </Link>
+        </div>
       </div>
     </main>
   );

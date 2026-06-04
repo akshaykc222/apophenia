@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { logAudit } from "@/lib/audit";
+import { sendReceiptEmail } from "@/lib/notifications/send-email";
+import { sendUserPush } from "@/lib/notifications/send-user-push";
 
 export async function activateSubscriptionForTransaction(
   supabase: SupabaseClient,
@@ -138,6 +140,45 @@ export async function activateSubscriptionForTransaction(
       is_lifetime: subLifetime,
     },
   });
+
+  // 1. In-app Notification
+  const notificationTitle = "تم تفعيل الاشتراك بنجاح";
+  const notificationBody = `تهانينا! تم تفعيل اشتراكك في خطة ${plan.name_ar}.`;
+  await supabase.from("user_notifications").insert({
+    user_id: tx.user_id,
+    title_ar: notificationTitle,
+    body_ar: notificationBody,
+  });
+
+  // 2. Push notification (device tokens)
+  try {
+    await sendUserPush(supabase, tx.user_id, {
+      title: notificationTitle,
+      body: notificationBody,
+      data: {
+        transaction_id: transactionId,
+        plan_id: plan.id,
+      },
+    });
+  } catch (err) {
+    console.error("Failed to send subscription push:", err);
+  }
+
+  // 3. Email receipt
+  try {
+    const { data: userData, error: userError } = await supabase.auth.admin.getUserById(tx.user_id);
+    if (!userError && userData?.user?.email) {
+      await sendReceiptEmail({
+        toEmail: userData.user.email,
+        planName: plan.name_ar,
+        transactionId: transactionId,
+        amount: tx.amount_kwd,
+        expiresAt: expiresAt,
+      });
+    }
+  } catch (err) {
+    console.error("Failed to send receipt email:", err);
+  }
 
   return { activated: true, subscriptionId: sub.id };
 }

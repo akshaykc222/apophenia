@@ -35,7 +35,10 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/login") ||
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/setup");
-  const isPublicPage = pathname.startsWith("/billing/");
+  const isPublicPage =
+    pathname.startsWith("/billing/") ||
+    pathname === "/privacy" ||
+    pathname === "/terms";
   const isPublicApi =
     pathname.startsWith("/api/inngest") ||
     pathname.startsWith("/api/health") ||
