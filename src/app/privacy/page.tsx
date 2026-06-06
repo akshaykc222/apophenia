@@ -33,10 +33,11 @@ export default function PrivacyPolicyPage() {
             ما يلزم لتشغيل الخدمة.
           </p>
           <p className="mt-3">
-            <strong>مهم:</strong> التطبيق خدمة مدفوعة بالاشتراك. لا يمكن الوصول
-            إلى المحتوى أو الميزات الأساسية إلا بعد إنشاء حساب وتفعيل اشتراك
-            مدفوع نشط. هذا جزء من سياسة الخدمة التجارية وليس خياراً اختيارياً
-            للمستخدم.
+            <strong>مهم:</strong> تسجيل الدخول <strong>إلزامي</strong> — لا
+            يمكن استخدام التطبيق أو الوصول إلى أي محتوى دون إنشاء حساب وتسجيل
+            الدخول أولاً، ثم تفعيل اشتراك مدفوع نشط. لا يوجد وضع ضيف أو
+            تصفّح بدون حساب. إنشاء الحساب وتسجيل الدخول{" "}
+            <strong>مطلوبان وليسا اختياريين</strong>.
           </p>
         </Section>
 
@@ -53,21 +54,37 @@ export default function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="3. نطاق الخدمة والوصول">
-          <p>لاستخدام التطبيق يجب عليك:</p>
+        <Section title="3. نطاق الخدمة والوصول (تسجيل الدخول إلزامي)">
+          <p>
+            استخدام تطبيق {PUBLIC_APP_NAME_AR} يتطلّب{" "}
+            <strong>تسجيل دخول إلزامي</strong>. لا يمكن فتح التطبيق أو
+            استخدام أي ميزة دون حساب مسجّل. الخطوات المطلوبة:
+          </p>
           <ol className="mt-2 list-decimal space-y-2 ps-6">
-            <li>إنشاء حساب مستخدم (البريد الإلكتروني وكلمة المرور).</li>
-            <li>الموافقة على هذه السياسة وشروط الاستخدام عند التسجيل.</li>
-            <li>شراء وتفعيل اشتراك مدفوع نشط للوصول إلى المحتوى والميزات.</li>
+            <li>
+              <strong>إنشاء حساب</strong> (البريد الإلكتروني وكلمة المرور) —
+              مطلوب.
+            </li>
+            <li>
+              <strong>تسجيل الدخول</strong> إلى حسابك — مطلوب في كل جلسة
+              استخدام.
+            </li>
+            <li>
+              الموافقة على هذه السياسة وشروط الاستخدام عند التسجيل — مطلوبة.
+            </li>
+            <li>
+              شراء وتفعيل <strong>اشتراك مدفوع نشط</strong> للوصول إلى
+              المحتوى والميزات — مطلوب.
+            </li>
           </ol>
           <p className="mt-3">
-            بعد تسجيل الدخول، يمكنك الوصول إلى: الأخبار والمراسيم المنشورة،
-            المناقصات، البحث، المفضّلة، مساعد الذكاء الاصطناعي (ضمن الاشتراك)،
-            وإشعارات التحديثات (بعد موافقتك).
+            بعد تسجيل الدخول وتفعيل الاشتراك، يمكنك الوصول إلى: الأخبار
+            والمراسيم المنشورة، المناقصات، البحث، المفضّلة، مساعد الذكاء
+            الاصطناعي، وإشعارات التحديثات (بعد موافقتك على الإشعارات).
           </p>
           <p className="mt-3">
-            لا نقدّم وضع تصفّح عام أو ضيفاً دون حساب واشتراك. صفحات
-            المصادقة والاشتراك فقط متاحة قبل إتمام هذه الخطوات.
+            قبل إتمام التسجيل وتسجيل الدخول والاشتراك، المتاح فقط شاشات
+            المصادقة والاشتراك. <strong>لا يوجد وصول بدون تسجيل دخول.</strong>
           </p>
         </Section>
 
@@ -305,11 +322,15 @@ export default function PrivacyPolicyPage() {
               Android.
             </p>
             <p>
-              <strong>Subscription required:</strong> Al-Soor is a paid
-              subscription service. You must create an account and maintain an
-              active paid subscription to access content and core features.
-              There is no guest or free browsing mode. This is our business
-              model, not an optional setting.
+              <strong>Sign-in required (mandatory):</strong> You must register
+              and sign in before using the app. Account creation and sign-in are{" "}
+              <strong>required, not optional</strong>. There is no guest mode
+              and no access without an account.
+            </p>
+            <p>
+              <strong>Subscription required:</strong> After sign-in, you must
+              maintain an active paid subscription to access content and core
+              features. There is no free browsing mode.
             </p>
             <p>
               <strong>Data we collect:</strong> account information (email,

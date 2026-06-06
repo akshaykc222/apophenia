@@ -44,10 +44,12 @@ export default function TermsPage() {
               2. الخدمة والاشتراك
             </h2>
             <p>
-              {PUBLIC_APP_NAME_AR} خدمة مدفوعة بالاشتراك. يتطلب الوصول إلى
-              المحتوى (الأخبار، المراسيم، المناقصات، البحث، مساعد الذكاء
-              الاصطناعي، وغيرها) حساباً مسجّلاً واشتراكاً مدفوعاً نشطاً.
-              لا نقدّم وصولاً مجانياً أو تصفّحاً دون اشتراك.
+              {PUBLIC_APP_NAME_AR} يتطلّب <strong>تسجيل دخول إلزامي</strong>.
+              لا يمكن استخدام التطبيق دون إنشاء حساب وتسجيل الدخول. بعد
+              تسجيل الدخول، يتطلّب الوصول إلى المحتوى (الأخبار، المراسيم،
+              المناقصات، البحث، مساعد الذكاء الاصطناعي، وغيرها){" "}
+              <strong>اشتراكاً مدفوعاً نشطاً</strong>. لا يوجد وضع ضيف أو
+              تصفّح بدون حساب.
             </p>
             <p className="mt-2">
               تفاصيل الخطط والأسعار معروضة داخل التطبيق. المدفوعات تتم عبر
@@ -95,12 +97,11 @@ export default function TermsPage() {
               6. English summary
             </h2>
             <p className="text-zinc-400">
-              Al-Soor ({PUBLIC_APP_NAME_AR}) is a subscription-only mobile
-              app. Account registration and an active paid subscription are
-              required to access content. Payments via MyFatoorah; refunds only
-              where required by Kuwaiti law. Content is informational from
-              official gazette sources. Contact {SUPPORT_EMAIL} for support.
-              Last updated: {PRIVACY_LAST_UPDATED}.
+              Al-Soor ({PUBLIC_APP_NAME_AR}) requires mandatory sign-in — you
+              cannot use the app without registering and signing in. An active
+              paid subscription is also required to access content. No guest
+              mode. Payments via MyFatoorah; refunds only where required by
+              Kuwaiti law. Contact {SUPPORT_EMAIL} for support.
             </p>
           </div>
 

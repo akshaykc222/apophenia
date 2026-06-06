@@ -64,7 +64,7 @@ Privacy policy is linked from:
 
 Optional:
 
-- `SUPPORT_EMAIL` — shown on privacy/terms pages (default `support@alfaresi.com`)
+- `SUPPORT_EMAIL` — shown on privacy/terms pages (default `info@alfaresi.com`)
 
 ## Resubmit checklist
 
