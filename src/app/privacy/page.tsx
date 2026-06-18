@@ -137,7 +137,7 @@ export default function PrivacyPolicyPage() {
           </ul>
         </Section>
 
-        <Section title="5. كيف نجمع البيانات">
+        <Section title="6. كيف نجمع البيانات">
           <ul className="list-disc space-y-2 ps-6">
             <li>مباشرة منك عند التسجيل، تسجيل الدخول، الدفع، أو استخدام الميزات.</li>
             <li>تلقائياً عند تشغيل التطبيق (جلسة المصادقة، سجلات تقنية).</li>
@@ -150,7 +150,7 @@ export default function PrivacyPolicyPage() {
           </ul>
         </Section>
 
-        <Section title="6. كيف نستخدم البيانات">
+        <Section title="7. كيف نستخدم البيانات">
           <ul className="list-disc space-y-2 ps-6">
             <li>إنشاء حسابك والتحقق من هويتك.</li>
             <li>التحقق من اشتراكك النشط ومنح الوصول إلى المحتوى.</li>
@@ -162,7 +162,7 @@ export default function PrivacyPolicyPage() {
           </ul>
         </Section>
 
-        <Section title="7. مشاركة البيانات مع أطراف ثالثة">
+        <Section title="8. مشاركة البيانات مع أطراف ثالثة">
           <p>
             نشارك البيانات الضرورية فقط مع مزوّدي الخدمة التاليين، وكل منهم
             ملزم تعاقدياً بحماية بياناتك:
@@ -198,11 +198,11 @@ export default function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="8. الاشتراك والمدفوعات">
+        <Section title="9. الاشتراك والمدفوعات">
           <p>
             التطبيق يعمل بنموذج اشتراك مدفوع. تفاصيل الخطط والأسعار معروضة
-            داخل التطبيق قبل الدفع. المدفوعات تتم عبر MyFatoorah (أو SDK
-            الدفع الأصلي حيث يُفعَّل). نحتفظ بسجل اشتراكك لإثبات وصولك
+            داخل التطبيق قبل الدفع. على Android تتم المدفوعات عبر MyFatoorah. على iOS تتم الاشتراكات
+            المدفوعة حصرياً عبر Apple In-App Purchase (StoreKit). نحتفظ بسجل اشتراكك لإثبات وصولك
             وإدارة التجديد.
           </p>
           <p className="mt-3">
@@ -215,7 +215,7 @@ export default function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="9. الإشعارات">
+        <Section title="10. الإشعارات">
           <p>
             يمكنك رفض أو إلغاء إشعارات الدفع من إعدادات جهاز iOS أو Android
             في أي وقت. عند تفعيل الاشتراك قد نرسل إشعاراً داخل التطبيق و/أو
@@ -224,7 +224,7 @@ export default function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="10. التخزين والأمان">
+        <Section title="11. التخزين والأمان">
           <p>
             نستخدم تشفير النقل (HTTPS/TLS) وضوابط وصول على قاعدة البيانات
             (Row Level Security في Supabase). كلمات المرور لا تُخزَّن بنصّ
@@ -233,7 +233,7 @@ export default function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="11. الاحتفاظ بالبيانات">
+        <Section title="12. الاحتفاظ بالبيانات">
           <ul className="list-disc space-y-2 ps-6">
             <li>
               <strong>بيانات الحساب:</strong> طوال مدة نشاط الحساب، ثم
@@ -256,7 +256,7 @@ export default function PrivacyPolicyPage() {
           </ul>
         </Section>
 
-        <Section title="12. حقوقك">
+        <Section title="13. حقوقك">
           <p>يمكنك طلب:</p>
           <ul className="mt-2 list-disc space-y-2 ps-6">
             <li>الاطلاع على بيانات حسابك أو تصحيحها.</li>
@@ -278,7 +278,7 @@ export default function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="13. خصوصية الأطفال">
+        <Section title="14. خصوصية الأطفال">
           <p>
             التطبيق موجّه للجمهور العام وليس للأطفال دون 13 عاماً. لا نجمع
             عن قصد بيانات شخصية من دون هذا العمر. إذا علمنا بجمع بيانات طفل،
@@ -286,7 +286,7 @@ export default function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="14. النقل الدولي">
+        <Section title="15. النقل الدولي">
           <p>
             قد تُعالَج البيانات على خوادم خارج دولة الكويت (مثل الاتحاد
             الأوروبي أو الولايات المتحدة) عبر مزوّدين المذكورين أعلاه، مع
@@ -294,7 +294,7 @@ export default function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="15. التغييرات">
+        <Section title="16. التغييرات">
           <p>
             قد نحدّث هذه السياسة. سننشر النسخة الجديدة على هذا الرابط مع
             تاريخ التحديث. استمرارك في استخدام التطبيق بعد التحديثات الجوهرية
@@ -302,7 +302,7 @@ export default function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="16. Privacy Policy (English)">
+        <Section title="17. Privacy Policy (English)">
           <div className="space-y-3 text-zinc-400">
             <p>
               This Privacy Policy describes how <strong>Al-Soor</strong> (
