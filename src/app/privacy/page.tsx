@@ -33,11 +33,11 @@ export default function PrivacyPolicyPage() {
             ما يلزم لتشغيل الخدمة.
           </p>
           <p className="mt-3">
-            <strong>مهم:</strong> تسجيل الدخول <strong>إلزامي</strong> — لا
-            يمكن استخدام التطبيق أو الوصول إلى أي محتوى دون إنشاء حساب وتسجيل
-            الدخول أولاً، ثم تفعيل اشتراك مدفوع نشط. لا يوجد وضع ضيف أو
-            تصفّح بدون حساب. إنشاء الحساب وتسجيل الدخول{" "}
-            <strong>مطلوبان وليسا اختياريين</strong>.
+            يمكنك <strong>تصفّح المحتوى المنشور دون إنشاء حساب</strong> (الأخبار،
+            المراسيم، المناقصات، البحث، والمساعدة). إنشاء حساب مطلوب فقط
+            للميزات المرتبطة بالحساب مثل المفضّلة، الإشعارات، ومساعد الذكاء
+            الاصطناعي. على iOS، الاشتراكات المدفوعة تتم عبر App Store In-App
+            Purchase عند توفرها.
           </p>
         </Section>
 
@@ -54,43 +54,32 @@ export default function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="3. نطاق الخدمة والوصول (تسجيل الدخول إلزامي)">
-          <p>
-            استخدام تطبيق {PUBLIC_APP_NAME_AR} يتطلّب{" "}
-            <strong>تسجيل دخول إلزامي</strong>. لا يمكن فتح التطبيق أو
-            استخدام أي ميزة دون حساب مسجّل. الخطوات المطلوبة:
-          </p>
-          <ol className="mt-2 list-decimal space-y-2 ps-6">
-            <li>
-              <strong>إنشاء حساب</strong> (البريد الإلكتروني وكلمة المرور) —
-              مطلوب.
-            </li>
-            <li>
-              <strong>تسجيل الدخول</strong> إلى حسابك — مطلوب في كل جلسة
-              استخدام.
-            </li>
-            <li>
-              الموافقة على هذه السياسة وشروط الاستخدام عند التسجيل — مطلوبة.
-            </li>
-            <li>
-              شراء وتفعيل <strong>اشتراك مدفوع نشط</strong> للوصول إلى
-              المحتوى والميزات — مطلوب.
-            </li>
-          </ol>
+        <Section title="3. ما الذي يمكنك استخدامه دون حساب">
+          <ul className="list-disc space-y-2 ps-6">
+            <li>تصفّح آخر الأخبار والمقالات المنشورة من الجريدة الرسمية.</li>
+            <li>عرض أحدث مناقصات الجهاز المركزي للمناقصات العامة (CAPT).</li>
+            <li>البحث في المحتوى المنشور وقراءة التفاصيل.</li>
+            <li>صفحات المساعدة والأسئلة الشائعة.</li>
+          </ul>
+        </Section>
+
+        <Section title="4. متى نطلب حساباً">
+          <p>إنشاء حساب اختياري ومطلوب فقط للميزات المرتبطة بالحساب:</p>
+          <ul className="mt-2 list-disc space-y-2 ps-6">
+            <li>حفظ المفضّلة ومزامنتها مع حسابك.</li>
+            <li>مساعد الذكاء الاصطناعي (يتطلب اشتراكاً نشطاً على المنصات المدعومة).</li>
+            <li>استلام إشعارات مرتبطة بحسابك.</li>
+            <li>إدارة الاشتراك (عبر App Store على iOS أو MyFatoorah على Android).</li>
+          </ul>
           <p className="mt-3">
-            بعد تسجيل الدخول وتفعيل الاشتراك، يمكنك الوصول إلى: الأخبار
-            والمراسيم المنشورة، المناقصات، البحث، المفضّلة، مساعد الذكاء
-            الاصطناعي، وإشعارات التحديثات (بعد موافقتك على الإشعارات).
-          </p>
-          <p className="mt-3">
-            قبل إتمام التسجيل وتسجيل الدخول والاشتراك، المتاح فقط شاشات
-            المصادقة والاشتراك. <strong>لا يوجد وصول بدون تسجيل دخول.</strong>
+            عند التسجيل نجمع: البريد الإلكتروني، الاسم المعروض (اختياري)،
+            وكلمة مرور مشفّرة عبر مزوّد المصادقة.
           </p>
         </Section>
 
-        <Section title="4. البيانات التي نجمعها">
+        <Section title="5. البيانات التي نجمعها">
           <h3 className="mb-2 font-semibold text-zinc-200">
-            4.1 بيانات تقدّمها أنت
+            5.1 بيانات تقدّمها أنت
           </h3>
           <ul className="list-disc space-y-2 ps-6">
             <li>
@@ -118,7 +107,7 @@ export default function PrivacyPolicyPage() {
           </ul>
 
           <h3 className="mb-2 mt-6 font-semibold text-zinc-200">
-            4.2 بيانات تُجمع تلقائياً
+            5.2 بيانات تُجمع تلقائياً
           </h3>
           <ul className="list-disc space-y-2 ps-6">
             <li>
@@ -138,7 +127,7 @@ export default function PrivacyPolicyPage() {
           </ul>
 
           <h3 className="mb-2 mt-6 font-semibold text-zinc-200">
-            4.3 بيانات لا نجمعها
+            5.3 بيانات لا نجمعها
           </h3>
           <ul className="list-disc space-y-2 ps-6">
             <li>لا نجمع الموقع الجغرافي الدقيق.</li>
@@ -322,15 +311,17 @@ export default function PrivacyPolicyPage() {
               Android.
             </p>
             <p>
-              <strong>Sign-in required (mandatory):</strong> You must register
-              and sign in before using the app. Account creation and sign-in are{" "}
-              <strong>required, not optional</strong>. There is no guest mode
-              and no access without an account.
+              <strong>Guest browsing:</strong> You can browse published news,
+              decrees, tenders, search, and help without creating an account.
             </p>
             <p>
-              <strong>Subscription required:</strong> After sign-in, you must
-              maintain an active paid subscription to access content and core
-              features. There is no free browsing mode.
+              <strong>Account required for:</strong> favorites, push
+              notifications, subscription management, and the AI assistant
+              (which also requires an active subscription where available).
+            </p>
+            <p>
+              <strong>iOS payments:</strong> Paid subscriptions on iOS use Apple
+              In-App Purchase (StoreKit), not third-party payment SDKs in the app.
             </p>
             <p>
               <strong>Data we collect:</strong> account information (email,
