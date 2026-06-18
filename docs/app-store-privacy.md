@@ -1,85 +1,47 @@
-# App Store & Play Store — Privacy (Guideline 5.1.1(v))
+# App Store & Play Store — Privacy & Payments
 
-## Privacy Policy URL (required in App Store Connect)
+## Privacy Policy URL
 
 ```
 https://apophenia-five.vercel.app/privacy
 ```
 
-Terms of use (linked from sign-up):
+## Payment model (Option A — web MyFatoorah on iOS)
+
+| Platform | In-app payment | Subscription purchase |
+|----------|----------------|----------------------|
+| **iOS** | None (no MyFatoorah, no IAP UI) | Web only: `/billing/subscribe` |
+| **Android** | MyFatoorah SDK | In-app |
+
+### Web subscribe (MyFatoorah)
 
 ```
-https://apophenia-five.vercel.app/terms
+https://apophenia-five.vercel.app/billing/subscribe
 ```
 
-Set **Privacy Policy URL** under App Store Connect → App Information.
+Flow:
 
-Also link the same URL in Google Play Console → App content → Privacy policy.
+1. User creates account in the mobile app (or signs in on web with same credentials).
+2. User opens web subscribe page in Safari (outside the iOS app).
+3. Pays via MyFatoorah hosted checkout.
+4. Returns to `/billing/complete` → deep link `apophenia://subscription`.
+5. In iOS app: Profile → Subscription → **تحقق من الدفع** to refresh status.
 
-## App name
+**Important for App Store review:** The iOS app must **not** link to the web subscribe URL or show prices/checkout. No external purchase CTAs in the iOS binary.
 
-Legal pages use **السور** / **Al-Soor** (see `src/lib/legal/public-app.ts`).
+## Guest browsing (Guideline 5.1.1(v))
 
-## Access model (matches app behavior)
+Without account:
 
-The mobile app is **subscription-only**:
+- Home feed, tenders, search, content detail, help
 
-1. User creates an account (email + password).
-2. User accepts Terms & Privacy Policy at sign-up.
-3. User purchases and activates a paid subscription.
-4. Only then can the user access content and features.
+Account required:
 
-There is **no guest browse** mode. The privacy policy must state this clearly — a mismatch caused the iOS Guideline 5.1.1(v) rejection.
-
-## App Privacy (Apple) — suggested labels
-
-Align App Store Connect “App Privacy” with the policy:
-
-| Data type | Linked to user | Used for |
-|-----------|----------------|----------|
-| Email address | Yes | Account, receipts |
-| Name | Yes | Account display |
-| User ID | Yes | Auth, subscription |
-| Purchase history | Yes | Subscription access |
-| Other user content (AI chat) | Yes | AI assistant |
-| Device ID (FCM token) | Yes | Push notifications (with consent) |
-| Product interaction | Optional | App functionality |
-| Crash data | No | Diagnostics |
-
-- **Tracking:** No — app does not track users across apps/websites for ads.
-- **Data not collected:** Precise location, contacts, photos, browsing history for ads.
-
-## Google Play Data safety
-
-Same disclosures: account data, purchase info, app activity (chat), device identifiers (FCM). No data sold. Encryption in transit. Users can request account deletion via support email.
-
-## In-app links
-
-Privacy policy is linked from:
-
-- Sign-up screen (`SignUpLegalText` in Flutter)
-- Profile → Privacy Policy
-
-## Environment (Vercel)
-
-Optional:
-
-- `SUPPORT_EMAIL` — shown on privacy/terms pages (default `info@alfaresi.com`)
+- Favorites, notifications, subscription status, AI assistant
 
 ## Resubmit checklist
 
-1. Deploy updated `/privacy` and `/terms` to Vercel.
-2. Verify URLs load with **Al-Soor** branding and subscription-required language.
-3. Update App Store Connect Privacy Policy URL if domain changed.
-4. Align App Privacy questionnaire with sections 4–7 of the policy.
-5. In App Store review notes, state: *“Al-Soor requires account sign-up and active subscription to access content; this is documented in our privacy policy.”*
-
-## Deep link after payment
-
-Hosted checkout success page opens:
-
-```
-apophenia://subscription
-```
-
-Registered on iOS (`Info.plist`) and Android (`AndroidManifest.xml`).
+1. New iOS build with guest browse + no in-app payment.
+2. Apply Supabase migration `015_content_public_read.sql` if not applied.
+3. Deploy backend with `/billing/subscribe`.
+4. App Review notes: guest browse + no in-app purchases; subscription managed outside app.

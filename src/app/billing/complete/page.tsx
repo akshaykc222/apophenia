@@ -18,7 +18,7 @@ export default async function BillingCompletePage({
     },
     failed: {
       title: "فشل الدفع",
-      body: "لم تكتمل العملية. جرّب مرة أخرى من التطبيق.",
+      body: "لم تكتمل العملية. يمكنك المحاولة مرة أخرى من صفحة الاشتراك.",
       tone: "text-red-400",
     },
     pending: {
